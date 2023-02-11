@@ -1,38 +1,38 @@
 module Lib where
-import Types (Tx)
+import Types (Wallet, WalletTx, WalletVoteTx, WalletException, Vk, Sk, AppHost, WalletState)
 
 listAllWallets :: [] Wallet
 listAllWallets = undefined
 
 -- ApproveTx below should perhaps be (Wallet -> SpendTx -> ApproveTx -> Either Ex SpendTx )
-applyTx :: Wallet -> WorkflowTx -> ApproveTx -> Either Ex ApproveTx
+applyTx :: Wallet -> WalletTx -> WalletVoteTx -> Either WalletException WalletTx
 applyTx = undefined
 
-getAllTxs :: [] Tx
+getAllTxs :: [] WalletTx
 getAllTxs = undefined
 
-getPendingTxs :: [] Tx
+getPendingTxs :: [] WalletTx
 getPendingTxs = undefined
 
-getPendingTxsForVk :: [] Tx
+getPendingTxsForVk :: [] WalletTx
 getPendingTxsForVk = undefined
 
-filterTxsForSk :: [] Tx -> Vk -> [] Tx
+filterTxsForSk :: [] WalletTx -> Vk -> [] WalletTx
 filterTxsForSk = undefined
 
-getTxsInState :: AppHost -> WalletState -> [] Tx
+getTxsInState :: AppHost -> WalletState -> [] WalletTx
 getTxsInState = undefined
 
-authenticate :: AppHost -> Sj -> Pk -> Bool
+authenticate :: AppHost -> Vk -> Sk -> Bool
 authenticate = undefined
 
 createWallet :: ()
 createWallet = undefined
 
-createSpendRequest :: Wallet -> Vk -> Int -> Int -> Either Ex WalletTx
+createSpendRequest :: Wallet -> Vk -> Int -> Int -> Either WalletException WalletTx
 createSpendRequest = undefined
 
-approveOrRejectTx :: SpendRequest -> Bool -> Either Ex SpendRequest
+approveOrRejectTx :: WalletTx -> Bool -> Either WalletException WalletTx
 approveOrRejectTx = undefined
 
 

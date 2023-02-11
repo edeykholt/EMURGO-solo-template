@@ -3,7 +3,7 @@ module Actions where
     listAllCmds :: IO ()
     listAllCmds = undefined
 
-    selectCmd :: IO -> IO Int
+    selectCmd :: IO Int
     selectCmd = undefined
 
     listAllWallets :: IO ()
@@ -12,4 +12,4 @@ module Actions where
     promptForTx :: IO()
     promptForTx = undefined
 
-    
+

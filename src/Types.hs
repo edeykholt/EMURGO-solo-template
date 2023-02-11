@@ -4,31 +4,32 @@ data WalletTx = SpendTx | AddSignerTx | RemoveSignerTx | UpdateQuorumTx
     deriving (Eq, Ord, Show, Read)
 
 -- verification, or public key
-type Vk = string
+type Vk = String
 -- signing, or private key
-type Sk = string
+type Sk = String
 
-datatype AppHost = AppHost {
-    authenticatedUsers = [] Vk
-    }
-
+newtype AppHost = AppHost {
+    ah_authenticatedUsers :: [] String
+}
 
 data WalletVoteTx = ApproveTx | RejectTx | UndecidedTx
 
-datatype Request = Request {
-    r_walletState = string
-    , r_createdDate = string
-    , r_lastUpdatedDate = string
-    , r_txs = [] Tx
-}
 
-datatype Wallet = Wallet {
-    txs = [] Tx
+
+data Request = Request {
+    r_txState :: WalletState
+    , r_createdDate :: String
+    , r_lastUpdatedDate :: String
+    , r_tx :: WalletTx
+    } -- deriving (Show)   
+
+data Wallet = Wallet {
+    txs :: [] WalletTx
 }
 
 data WalletState = RequestedWS | PendingWS | ApprovedWS | RejectedWS | ExpiredWS | ApprovedNsfWS | OtherErrorWS
 
-data WalletExceptions = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx -- ??
+data WalletException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx -- ??
 
 -- Transaction time to live before expired, in seconds
 _TxTTL_ = 600 
