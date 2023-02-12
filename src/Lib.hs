@@ -8,34 +8,28 @@ listAllWallets :: [] Wallet
 listAllWallets = undefined
 
 -- ApproveTx below should perhaps be (Wallet -> SpendTx -> ApproveTx -> Either Ex SpendTx )
-applyTx :: Wallet -> WalletTx -> WalletVoteTx -> Either WalletException WalletTx
+applyTx :: Wallet -> Account -> AccountRequest -> AccountRequestTx -> Either RequestException Wallet
 applyTx = undefined
 
-getAllTxs :: [] WalletTx
+getAllTxs :: Wallet -> Account -> [] AccountRequestTx
 getAllTxs = undefined
 
-getPendingTxs :: [] WalletTx
-getPendingTxs = undefined
-
-getPendingTxsForVk :: [] WalletTx
+getPendingTxsForVk :: [] AccountRequestTx
 getPendingTxsForVk = undefined
 
-filterTxsForSk :: [] WalletTx -> Vk -> [] WalletTx
-filterTxsForSk = undefined
-
-getTxsInState :: AppHost -> WalletState -> [] WalletTx
+getTxsInState :: Wallet -> AccountRequestState ->  [] AccountRequestTx
 getTxsInState = undefined
 
-authenticate :: AppHost -> Vk -> Sk -> Bool
+authenticate :: Wallet -> Vk -> Sk -> Bool
 authenticate = undefined
 
 createWallet :: ()
 createWallet = undefined
 
-createSpendRequest :: Wallet -> Vk -> Int -> Int -> Either WalletException WalletTx
+createSpendRequest :: Wallet -> Vk -> Int -> Int -> Either RequestException AccountRequestTx
 createSpendRequest = undefined
 
-approveOrRejectTx :: WalletTx -> Bool -> Either WalletException WalletTx
+approveOrRejectTx :: AccountRequest -> AccountRequestTx -> AccountTxVote -> Either RequestException AccountRequest
 approveOrRejectTx = undefined
 
 
