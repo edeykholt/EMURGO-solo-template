@@ -1,5 +1,8 @@
 module Lib where
-import Types (Wallet, WalletTx, WalletVoteTx, WalletException, Vk, Sk, AppHost, WalletState)
+
+import Types
+-- import Types (Wallet, WalletTx, WalletVoteTx, WalletException, Vk, Sk, AppHost, WalletState)
+import Data.List (intercalate, elemIndex, transpose)
 
 listAllWallets :: [] Wallet
 listAllWallets = undefined

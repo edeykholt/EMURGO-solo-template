@@ -1,15 +1,19 @@
 module Actions where
 
-    listAllCmds :: IO ()
-    listAllCmds = undefined
+import Lib
+import Types
+    -- imports (Wallet, WalletTx, WalletVoteTx, WalletException, Vk, Sk, AppHost, WalletState)
 
-    selectCmd :: IO Int
-    selectCmd = undefined
+listAllCmds :: IO ()
+listAllCmds = undefined
 
-    listAllWallets :: IO ()
-    listAllWallets = undefined
+readCmd :: IO Int
+readCmd = undefined
 
-    promptForTx :: IO()
-    promptForTx = undefined
+listAllWallets :: IO ()
+listAllWallets = undefined
+
+promptForTx :: IO()
+promptForTx = undefined
 
 

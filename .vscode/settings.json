@@ -4,6 +4,7 @@
   "workbench.iconTheme": "vscode-icons",
   "haskell.plugin.ghcide-type-lenses.globalOn": false,
   "haskell.plugin.importLens.codeLensOn": false,
+  "haskell.plugin.rename.config.crossModule": true,
   "gitpod.openInStable.neverPrompt": true,
   "redhat.telemetry.enabled": true,
   "vsicons.dontShowNewVersionMessage": true,

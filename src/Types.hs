@@ -5,16 +5,16 @@ data WalletTx = SpendTx | AddSignerTx | RemoveSignerTx | UpdateQuorumTx
 
 -- verification, or public key
 type Vk = String
+
 -- signing, or private key
 type Sk = String
 
-newtype AppHost = AppHost {
-    ah_authenticatedUsers :: [] String
-}
+data AppHost = AppHost {
+    ah_authenticatedUsers   :: [] String
+    , ah_wallets            :: [] String
+    }
 
 data WalletVoteTx = ApproveTx | RejectTx | UndecidedTx
-
-
 
 data Request = Request {
     r_txState :: WalletState
@@ -25,6 +25,7 @@ data Request = Request {
 
 data Wallet = Wallet {
     txs :: [] WalletTx
+    , balance :: Int
 }
 
 data WalletState = RequestedWS | PendingWS | ApprovedWS | RejectedWS | ExpiredWS | ApprovedNsfWS | OtherErrorWS
