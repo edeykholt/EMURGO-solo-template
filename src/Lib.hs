@@ -4,15 +4,14 @@ import Types
 -- import Types (Wallet, WalletTx, WalletVoteTx, WalletException, Vk, Sk, AppHost, WalletState)
 import Data.List (intercalate, elemIndex, transpose)
 
-listAllWallets :: [] Wallet
-listAllWallets = undefined
+listAllAccounts :: [] Account
+listAllAccounts = undefined
 
--- ApproveTx below should perhaps be (Wallet -> SpendTx -> ApproveTx -> Either Ex SpendTx )
-applyTx :: Wallet -> Account -> AccountRequest -> AccountRequestTx -> Either RequestException Wallet
+applyTx :: Account -> AccountRequest -> AccountRequestTx -> Either RequestException Account
 applyTx = undefined
 
-getAllTxs :: Wallet -> Account -> [] AccountRequestTx
-getAllTxs = undefined
+getAllWalletTxs ::  Wallet -> Account -> [] AccountRequestTx
+getAllWalletTxs = undefined
 
 getPendingTxsForVk :: [] AccountRequestTx
 getPendingTxsForVk = undefined
@@ -20,11 +19,14 @@ getPendingTxsForVk = undefined
 getTxsInState :: Wallet -> AccountRequestState ->  [] AccountRequestTx
 getTxsInState = undefined
 
-authenticate :: Wallet -> Vk -> Sk -> Bool
+authenticate :: Account -> Vk -> Sk -> Bool
 authenticate = undefined
 
 createWallet :: ()
 createWallet = undefined
+
+addAccount :: Wallet -> Account
+addAccount :: undefined
 
 createSpendRequest :: Wallet -> Vk -> Int -> Int -> Either RequestException AccountRequestTx
 createSpendRequest = undefined
