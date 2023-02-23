@@ -1,38 +1,49 @@
 module Lib where
 
 import Types
--- import Types (Wallet, WalletTx, WalletVoteTx, WalletException, Vk, Sk, AppHost, WalletState)
 import Data.List (intercalate, elemIndex, transpose)
 
-listAllAccounts :: [] Account
-listAllAccounts = undefined
+-- add or update transaction in account ----------------------------------------------------------------------
+addOrUpdateCreateTx :: Account -> CreateTx -> Either RequestException Account
+addOrUpdateCreateTx = undefined
 
-applyTx :: Account -> AccountRequest -> AccountRequestTx -> Either RequestException Account
-applyTx = undefined
+addOrUpdateSpendTx :: Account -> SpendTx -> Either RequestException Account
+addOrUpdateSpendTx = undefined
 
-getAllWalletTxs ::  Wallet -> Account -> [] AccountRequestTx
+addOrUpdateAddSignerTx :: Account -> AddSignerTx -> Either RequestException Account
+addOrUpdateAddSignerTx = undefined
+
+addOrUpdateRemoveSignerTx :: Account -> RemoveSignerTx -> Either RequestException Account
+addOrUpdateRemoveSignerTx = undefined
+
+addOrUpdateUpdateNumSignersTx :: Account -> UpdateNumSignersTx -> Either RequestException Account
+addOrUpdateUpdateNumSignersTx = undefined
+
+-- functions to help UI listings
+getAllWalletTxs ::  ()
 getAllWalletTxs = undefined
 
-getPendingTxsForVk :: [] AccountRequestTx
+getPendingTxsForVk :: ()
 getPendingTxsForVk = undefined
 
-getTxsInState :: Wallet -> AccountRequestState ->  [] AccountRequestTx
+getTxsInState :: ()
 getTxsInState = undefined
 
-authenticate :: Account -> Vk -> Sk -> Bool
+-- authenticate
+authenticate :: Vk -> Sk -> Bool
 authenticate = undefined
 
-createWallet :: ()
-createWallet = undefined
+-- Updates to Wallet
+addOrUpdateAccount :: Wallet -> Account -> Either RequestException Wallet
+addOrUpdateAccount = undefined
 
-addAccount :: Wallet -> Account
-addAccount :: undefined
+-- make sure an account update doesn't violate certain incremental constraints
+verifyAccountUpdate :: Account -> Account -> Either RequestException Account
+verifyAccountUpdate = undefined
 
-createSpendRequest :: Wallet -> Vk -> Int -> Int -> Either RequestException AccountRequestTx
-createSpendRequest = undefined
-
-approveOrRejectTx :: AccountRequest -> AccountRequestTx -> AccountTxVote -> Either RequestException AccountRequest
-approveOrRejectTx = undefined
-
-
-
+-- vote on various transaction types
+voteOnSpendTx :: SpendTx -> AccountTxVoteTx -> Either RequestException SpendTx
+voteOnSpendTx = undefined
+-- voteOnAddSignerTx
+-- voteOnRemoveSignerTx
+-- voteOnUpdateNumSignersTx
