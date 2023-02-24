@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 module Types where
+
 import GHC.Natural (Natural)
 import Data.Fixed 
 import Data.Time
@@ -108,6 +109,8 @@ data AccountTxVoteTx = AccountTxVoteTx {
 _TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_VK_ "2023-01-02" True
 
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx
-
+    deriving Show
+data WalletException = WalletException1 | WalletException2
+    deriving Show
 -- Transaction time to live before expired, in seconds
 _TxTTL_ = 600 
