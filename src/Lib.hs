@@ -3,9 +3,21 @@ module Lib where
 import Types
 import Data.List (intercalate, elemIndex, transpose)
 
+import Control.Monad
+import Control.Monad.State
+import Data.Char (toUpper)
+
+mkWallet :: [Account] -> State Wallet ()
+mkWallet as = put $ Wallet as
+
 -- add or update transaction in account ----------------------------------------------------------------------
 addOrUpdateCreateTx :: Account -> CreateTx -> Either RequestException Account
 addOrUpdateCreateTx = undefined
+-- see if Tx already exists in account
+-- verify validity of CreateTx, including: 
+    -- is the CreateTx itself correct, e.g. signed and within date?
+    -- valid for existing state and potential newstate?
+    -- if this is the final approval, is there enough funds?
 
 addOrUpdateSpendTx :: Account -> SpendTx -> Either RequestException Account
 addOrUpdateSpendTx = undefined
