@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 module Types where
-
+    
 import GHC.Natural (Natural)
 import Data.Fixed 
 import Data.Time
@@ -17,6 +17,12 @@ _TEST_SK_ = "asdf"
 
 -- Account Request Transactions, below, go through a number of potential states resolved as Expired or Approved
 data TxState = RequestedTx | PendingTx | ApprovedTx | RejectedTx | ExpiredTx | ApprovedNsfTx | OtherErrorTx
+    deriving Show
+
+data WalletException = WalletException1 | WalletException2
+    deriving Show
+
+data AccountException = AccountException1 | AccountException2
     deriving Show
 
 -- Varoius kinds of Account Request Transactions share the same base set of property types
@@ -109,8 +115,6 @@ data AccountTxVoteTx = AccountTxVoteTx {
 _TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_VK_ "2023-01-02" True
 
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx
-    deriving Show
-data WalletException = WalletException1 | WalletException2
-    deriving Show
+
 -- Transaction time to live before expired, in seconds
 _TxTTL_ = 600 
