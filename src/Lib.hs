@@ -8,7 +8,7 @@ import Control.Monad.State
 import Data.Char (toUpper)
 
 mkWallet :: [Account] -> State Wallet ()
-mkWallet as = put $ Wallet as
+mkWallet as = put $ Wallet as 999 -- no active account
 
 -- add or update transaction in account ----------------------------------------------------------------------
 addOrUpdateCreateTx :: Account -> CreateTx -> Either RequestException Account

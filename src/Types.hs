@@ -100,10 +100,11 @@ data Account = Account {
 } deriving Show
 _TEST_ACCOUNT_ = Account "accountId" [_TEST_VK_, _TEST_VK_ ] 2 100 _TEST_CreateTx_  [] [] [] []
 
-newtype Wallet = Wallet {
-   ah_accounts            :: [] Account
+data Wallet = Wallet {
+   ah_accounts              :: [] Account
+   , ah_activeAccountIndex  :: Int
    } deriving Show
-_TEST_WALLET_ = Wallet [_TEST_ACCOUNT_]
+_TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] 0 -- initial account is active
 
 data AccountTxVoteTx = AccountTxVoteTx {
     atxv_accountId     :: String
