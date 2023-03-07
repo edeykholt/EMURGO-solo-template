@@ -46,24 +46,30 @@ startWallet w = do
           listAccounts w
           startWallet  w
         '2' -> do
-            print "Enter account number"
+            putStrLn "Enter account number:"
             char2 <- getUpperChar
             let idx = digitToInt char2
             
             if idx > length (ah_accounts w) - 1 then 
                 do
-                    print "Number out of range."
+                    putStrLn "Number out of range."
                     startWallet w
                 else do
                     print $ ah_accounts w !! idx
                     let newWallet = Wallet (ah_accounts w) idx
                     startAccount newWallet
         '3' -> do
-            print "Enter new Account information:"
-            print "Number of required signers:"
-            print "Number of potential signers (including you):"
-            print "Public Key of signer:"
-            print "Public Key of signer:"
+            putStrLn "Enter new Account information:"
+            putStrLn "  Number of required signers:"
+            -- TODO add error checking
+            x <- getUpperChar
+            let thresholdNum = digitToInt x
+            putStrLn "  Number of potential signers (including you):"
+            -- TODO add error checking
+            y <- getUpperChar
+            let numPotentialSigners = digitToInt y
+            putStrLn "  Enter VKeys of other signers:"
+            additionalSigners <- getAddlSigner [] numPotentialSigners
             -- set random accountId
             let oldAccounts = ah_accounts w
             -- TODO create the real new account with captured params
@@ -74,6 +80,20 @@ startWallet w = do
         _ -> do
             print "Unexpected choice"
             startWallet w
+
+getAddlSigner :: [Vk] -> Int -> IO [Vk]
+getAddlSigner vks 0 = pure vks
+getAddlSigner vks numAddlSigners = do
+    putStrLn $ "  Public Key of signer " ++ [intToDigit numAddlSigners] ++ ": "
+    vk <- getLine
+    -- TODO check validity here
+    let newVks = vks ++ [vk]
+    if numAddlSigners > 0 then
+        getAddlSigner newVks (numAddlSigners - 1)
+    else
+        pure newVks
+
+    
 
 processWalletAction :: Wallet -> Char -> Either WalletException Wallet
 processWalletAction w c = case c of 
