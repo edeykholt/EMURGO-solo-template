@@ -121,6 +121,8 @@ listMenuOptions (a : as) = do
 
 startAccount :: Wallet -> IO ()
 startAccount w = do
+    let activeAccountIndex = ah_activeAccountIndex w
+    let activeAccount = ah_accounts w !! activeAccountIndex
     print "ACCOUNT MODE -- Choose command:" 
     listMenuOptions menuOptions
     
@@ -129,7 +131,7 @@ startAccount w = do
         
         '1' -> do
           -- Print Account
-          listAccounts w
+          printAccount activeAccount
           startAccount  w
         
         '2' -> do
