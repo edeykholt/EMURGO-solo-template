@@ -7,13 +7,20 @@ import Data.Fixed
 import Data.Time
 import Text.Show.Functions
 
--- verification key, or public key
+-- verification key, or public key1
+
 type Vk = String
-_TEST_VK_ = "1234"
+_TEST_ALICE_VK_ = "Alice"
+_TEST_BOB_VK_ = "Bob"
+_TEST_CAROL_VK_ = "Carol"
+_TEST_DAN_VK_ = "Dan"
 
 -- signing key, or private key
 type Sk = String
-_TEST_SK_ = "asdf"
+_TEST_ALICE_SK_ = "AliceSK"
+_TEST_BOB_SK_ = "BobSK"
+_TEST_CAROL_SK_ = "CarolSK"
+_TEST_DAN_SK_ = "DanSK"
 
 -- Account Request Transactions, below, go through a number of potential states resolved as Expired or Approved
 data TxState = RequestedTx | PendingTx | ApprovedTx | RejectedTx | ExpiredTx | ApprovedNsfTx | OtherErrorTx
@@ -28,7 +35,7 @@ data AccountException = AccountException1 | AccountException2
 -- Varoius kinds of Account Request Transactions share the same base set of property types
 data AccountRequestTxBase = AccountRequestTxBase {
     btx_expirationInSeconds     :: Natural
-    , btx_accountId             :: String
+    , btx_accountId             :: String  -- redundant?
     , btx_txId                  :: String
     , btx_txCreator             :: Vk
     , btx_txSignature           :: String
@@ -38,7 +45,7 @@ data AccountRequestTxBase = AccountRequestTxBase {
     , btx_voteTxs               :: [] AccountTxVoteTx
 } deriving Show
 
-
+-- is there a more specific function?
 mkUTCTime :: (Integer, Int, Int)
           -> (Int, Int, Pico)
           -> UTCTime
@@ -46,7 +53,7 @@ mkUTCTime (year, mon, day) (hour, min, sec) =
     UTCTime (fromGregorian year mon day) (sinceMidnight (TimeOfDay hour min sec))
 _TEST_UTCTime_ = mkUTCTime (2023, 01, 01) (01, 0, 0)
 
-_TEST_ARTxBase_ = AccountRequestTxBase 100 "accountId" "txId" _TEST_VK_ "sig" _TEST_UTCTime_  RequestedTx False []
+_TEST_ARTxBase_ = AccountRequestTxBase 100 "accountId" "txId" _TEST_ALICE_VK_ "sig" _TEST_UTCTime_  RequestedTx False []
 
 -- Request to create a new multisig account
 data CreateTx = CreateTx {
@@ -55,7 +62,7 @@ data CreateTx = CreateTx {
     , ctx_approvalThreshold      :: Natural
 } deriving Show
 
-_TEST_CreateTx_ = CreateTx _TEST_ARTxBase_ [_TEST_VK_, _TEST_VK_] 2
+_TEST_CreateTx_ = CreateTx _TEST_ARTxBase_ [_TEST_ALICE_VK_, _TEST_BOB_VK_] 2
 
 -- Request to spend
 data SpendTx = SpendTx {
@@ -69,14 +76,14 @@ data AddSignerTx = AddSignerTx {
     astx_base            :: AccountRequestTxBase
     , astx_signer        :: Vk
 } deriving Show
-_TEST_AddSignerTx_ = AddSignerTx _TEST_ARTxBase_ _TEST_VK_
+_TEST_AddSignerTx_ = AddSignerTx _TEST_ARTxBase_ _TEST_CAROL_VK_
 
 -- Request to remove a signer
 data RemoveSignerTx = RemoveSignerTx {
     rstx_base            :: AccountRequestTxBase
     , rstx_signer        :: Vk
 } deriving Show
-_TEST_RemoveSignerTx_ = RemoveSignerTx _TEST_ARTxBase_ _TEST_VK_
+_TEST_RemoveSignerTx_ = RemoveSignerTx _TEST_ARTxBase_ _TEST_CAROL_VK_
 
 -- Request to change the approval threshold, i.e., number of signers
 data UpdateNumSignersTx = UpdateNumSignersTx {
@@ -98,7 +105,7 @@ data Account = Account {
     , a_removeSignerTxs :: [] RemoveSignerTx
     , s_updateNumSignersTxs :: [] UpdateNumSignersTx
 } deriving Show
-_TEST_ACCOUNT_ = Account "accountId" [_TEST_VK_, _TEST_VK_ ] 2 100 _TEST_CreateTx_  [] [] [] []
+_TEST_ACCOUNT_ = Account "accountId" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 _TEST_CreateTx_  [] [] [] []
 
 data Wallet = Wallet {
    ah_accounts              :: [] Account
@@ -113,7 +120,7 @@ data AccountTxVoteTx = AccountTxVoteTx {
     ,atxv_dateTime      :: String
     ,atxv_isApproved   :: Bool
 } deriving Show
-_TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_VK_ "2023-01-02" True
+_TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02" True
 
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx
 

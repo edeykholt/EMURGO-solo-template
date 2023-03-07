@@ -10,6 +10,8 @@ import Data.Char (toUpper)
 mkWallet :: [Account] -> State Wallet ()
 mkWallet as = put $ Wallet as 999 -- no active account
 
+-- TODO consider defining a custom typeclass !!!
+
 -- add or update transaction in account ----------------------------------------------------------------------
 addOrUpdateCreateTx :: Account -> CreateTx -> Either RequestException Account
 addOrUpdateCreateTx = undefined
