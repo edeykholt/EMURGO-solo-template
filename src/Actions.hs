@@ -8,8 +8,9 @@ import Control.Monad
 import Foreign (Storable(sizeOf))
 import System.IO
 import GHC.IO.Handle.Internals (flushBuffer, flushByteReadBuffer, flushCharReadBuffer)
-import Data.IntMap (IntMap)
+import Data.IntMap (IntMap, size)
 import qualified Data.IntMap as IntMap
+import Text.ParserCombinators.ReadP (count)
 
 runApp :: IO ()
 runApp = do 
@@ -48,12 +49,15 @@ startWallet w = do
             print "Enter account number"
             char2 <- getUpperChar
             let idx = digitToInt char2
-            -- following is unsafe
-            -- todo: delivery reasonable error if out of index
-            print $ ah_accounts w !! idx
-            -- set the new index, if valid
-            let newWallet = Wallet (ah_accounts w) idx
-            startAccount newWallet
+            
+            if idx > length (ah_accounts w) - 1 then 
+                do
+                    print "Number out of range."
+                    startWallet w
+                else do
+                    print $ ah_accounts w !! idx
+                    let newWallet = Wallet (ah_accounts w) idx
+                    startAccount newWallet
         '3' -> do
             print "Enter new Account information:"
             print "Number of required signers:"

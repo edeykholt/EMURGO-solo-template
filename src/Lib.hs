@@ -13,7 +13,7 @@ mkWallet as = put $ Wallet as 999 -- no active account
 -- TODO consider defining a custom typeclass !!!
 
 -- add or update transaction in account ----------------------------------------------------------------------
-addOrUpdateCreateTx :: Account -> CreateTx -> Either RequestException Account
+addOrUpdateCreateTx :: Account -> CreateAccountTx -> Either RequestException Account
 addOrUpdateCreateTx = undefined
 -- see if Tx already exists in account
 -- verify validity of CreateTx, including: 
@@ -21,16 +21,32 @@ addOrUpdateCreateTx = undefined
     -- valid for existing state and potential newstate?
     -- if this is the final approval, is there enough funds?
 
-addOrUpdateSpendTx :: Account -> SpendTx -> Either RequestException Account
+-- TODO
+-- Class-based ad-hoc polymorphism
+-- We could also have achieved a polymorphic area function over shapes in this way:
+-- data Circle = Circle Float
+-- data Rect = Rect Float Float
+-- class Shape a where
+  -- area :: a -> Float
+
+-- instance Shape Circle where
+  -- area (Circle r) = pi * r^2
+-- instance Shape Rect where
+  -- area (Rect length' width') = length' * width'
+
+-- class ApprovableTx atx where
+--     approveTx :: atx -> Account -> Maybe Account
+
+addOrUpdateSpendTx :: Account -> SpendRequestTx -> Either RequestException Account
 addOrUpdateSpendTx = undefined
 
-addOrUpdateAddSignerTx :: Account -> AddSignerTx -> Either RequestException Account
+addOrUpdateAddSignerTx :: Account -> AddSignerRequestTx -> Either RequestException Account
 addOrUpdateAddSignerTx = undefined
 
-addOrUpdateRemoveSignerTx :: Account -> RemoveSignerTx -> Either RequestException Account
+addOrUpdateRemoveSignerTx :: Account -> RemoveSignerRequestTx -> Either RequestException Account
 addOrUpdateRemoveSignerTx = undefined
 
-addOrUpdateUpdateNumSignersTx :: Account -> UpdateNumSignersTx -> Either RequestException Account
+addOrUpdateUpdateNumSignersTx :: Account -> UpdateNumSignersRequestTx -> Either RequestException Account
 addOrUpdateUpdateNumSignersTx = undefined
 
 -- functions to help UI listings
@@ -56,7 +72,7 @@ verifyAccountUpdate :: Account -> Account -> Either RequestException Account
 verifyAccountUpdate = undefined
 
 -- vote on various transaction types
-voteOnSpendTx :: SpendTx -> AccountTxVoteTx -> Either RequestException SpendTx
+voteOnSpendTx :: SpendRequestTx -> AccountTxVoteTx -> Either RequestException SpendRequestTx
 voteOnSpendTx = undefined
 -- voteOnAddSignerTx
 -- voteOnRemoveSignerTx
