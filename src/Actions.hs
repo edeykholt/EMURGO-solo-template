@@ -3,10 +3,13 @@ module Actions where
 import Lib
 import Types
     -- imports (Wallet, WalletTx, WalletVoteTx, WalletException, Vk, Sk, AppHost, WalletState)
-import Data.Char ( toUpper, digitToInt )
+import Data.Char ( toUpper, digitToInt, intToDigit )
 import Control.Monad
 import Foreign (Storable(sizeOf))
 import System.IO
+import GHC.IO.Handle.Internals (flushBuffer, flushByteReadBuffer, flushCharReadBuffer)
+import Data.IntMap (IntMap)
+import qualified Data.IntMap as IntMap
 
 runApp :: IO ()
 runApp = do 
@@ -26,8 +29,12 @@ runApp = do
     pure ()
 
 getUpperChar :: IO Char
--- get first character of a line
-getUpperChar = toUpper . head <$> getLine
+-- get first character of an input line
+getUpperChar = do
+    x <- getLine
+    case x of 
+        [] -> pure 'z'
+        c:_ -> pure (toUpper c)
 
 startWallet :: Wallet -> IO ()
 startWallet w = do
@@ -77,34 +84,46 @@ listAccounts w = do
     when (null $ ah_accounts w ) $
         putStrLn "  (none)"
     unless (null $ ah_accounts w ) $
-        -- todo number them and pretty print
-        -- todo Indicate which one is active, if set to a valid one
+        -- TODO number them and pretty print
+        -- TODO Indicate which one is active, if set to a valid one
         forM_ (ah_accounts w) listAccount
 
 listAccount :: Account -> IO ()
 listAccount = print
 
+menuOptions :: [(Int, String)]
+menuOptions = [(1, "Print Account")
+                , (2, "Print All Txs")
+                , (3, "Print Pending Txs")
+                , (4, "Set User Vk")
+                , (5, "Create Spend Tx")
+                , (6, "Vote on Pending Spend Tx")
+                , (7, "Modify or Vote on Proposed Signers or Threshold")
+                , (8, "Return to Wallet")
+                ]
+
+listMenuOptions :: [(Int, String)] -> IO ()
+listMenuOptions [] = pure ()
+listMenuOptions (a : as) = do
+    putChar $ intToDigit $ fst  a
+    putStr ". "
+    putStrLn $ snd a
+    listMenuOptions as
+
 startAccount :: Wallet -> IO ()
 startAccount w = do
-    let menuOptions = [
-         "ACCOUNT MODE -- Choose command:" 
-         , "1. Print Account"
-         , "2. Print All Txs"
-         , "3. Print Pending Txs"
-         , "4. Set User Vk"
-         , "5. Create Spend Tx"
-         , "6. Vote on Pending Spend Tx"
-         , "7. Modify or Vote on Proposed Signers or Threshold"
-         , "9. Return to Wallet"
-         ]
-    putStrLn "ACCOUNT MODE -- Choose command:\n 1. Print Account\n 2. Print Account Txs\n 3. Set User Vk \n 3. Create Spend Tx\n 9. Return to Wallet"
+    print "ACCOUNT MODE -- Choose command:" 
+    listMenuOptions menuOptions
+    
     char <- getUpperChar
     case char of
         '1' -> do
           listAccounts w
-          startWallet  w
-        '9' -> do
+          startAccount  w
+        '9' ->
             startWallet w
+        _ -> print "unexpected entry" >>
+            startAccount w
 
 listAllCmds :: IO ()
 listAllCmds = undefined
