@@ -83,13 +83,22 @@ listAccounts w = do
     putStrLn "Accounts:"
     when (null $ ah_accounts w ) $
         putStrLn "  (none)"
-    unless (null $ ah_accounts w ) $
+    unless (null $ ah_accounts w ) $ do
+        let zah_accounts = zip [0,1..] $ ah_accounts w
         -- TODO number them and pretty print
         -- TODO Indicate which one is active, if set to a valid one
-        forM_ (ah_accounts w) listAccount
+        forM_ (zah_accounts) listAccount
 
-listAccount :: Account -> IO ()
-listAccount = print
+listAccount :: (Int, Account) -> IO ()
+listAccount (i,a) = do
+    putStr [intToDigit i] >> putStr " "
+    printAccount a
+
+printAccount :: Account -> IO ()
+printAccount a = do
+    -- TODO make this prettier, with labels2
+    putStrLn $ show a
+    putStrLn ""
 
 menuOptions :: [(Int, String)]
 menuOptions = [(1, "Print Account")
@@ -117,19 +126,40 @@ startAccount w = do
     
     char <- getUpperChar
     case char of
+        
         '1' -> do
+          -- Print Account
           listAccounts w
           startAccount  w
-        '9' ->
-            startWallet w
-        _ -> print "unexpected entry" >>
+        
+        '2' -> do
+            -- Print All Txs
+            print "Not yet implemented"
             startAccount w
-
-listAllCmds :: IO ()
-listAllCmds = undefined
-
-readCmd :: IO Int
-readCmd = undefined
+        '3' -> do
+            -- Print Pending Txs
+            print "Not yet implemented"
+            startAccount w
+        '4' -> do
+            -- Set User Vk
+            print "Not yet implemented"
+            startAccount w
+        '5' -> do
+            -- Create Spend Tx
+            print "Not yet implemented"
+            startAccount w
+        '6' -> do
+            -- Vote on Pending Spend Tx
+            print "Not yet implemented"
+            startAccount w
+        '7' -> do
+            -- Modify or Vote on Proposed Signers or Threshold
+            startAccount w
+        '8' ->
+            -- Return to Wallet
+            startWallet w
+        _ -> print "Unexpected entry!" >>
+            startAccount w
 
 listAllWallets :: IO ()
 listAllWallets = undefined
