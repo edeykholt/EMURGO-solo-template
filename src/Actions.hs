@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use when" #-}
 module Actions where
 
 import Lib
@@ -39,7 +41,7 @@ getUpperChar = do
 
 startWallet :: Wallet -> IO ()
 startWallet w = do
-    putStrLn "WALLET MODE -- Choose command:\n 1. List Accounts\n 2. Select Account \n 3. Add Account\n 4. Quit"
+    putStrLn "WALLET MODE -- Choose command:\n 1. List Accounts\n 2. Select Account \n 3. Add Account\n 4. Authenticate \n 5. Quit"
     char <- getUpperChar
     case char of
         '1' -> do
@@ -70,12 +72,28 @@ startWallet w = do
             let numPotentialSigners = digitToInt y
             putStrLn "  Enter VKeys of other signers:"
             additionalSigners <- getAddlSigner [] numPotentialSigners
-            -- set random accountId
+            let allSigners = [_TEST_ALICE_VK_, _TEST_BOB_VK_]
+            let xxxx = Account 
             let oldAccounts = ah_accounts w
+            
             -- TODO create the real new account with captured params
             let newAccounts = oldAccounts ++ [_TEST_ACCOUNT_]
             startWallet $ Wallet newAccounts (ah_activeAccountIndex w)
+        -- Authenticate
         '4' -> do
+            putStrLn "Enter public key:"
+            vk <- getLine
+            putStrLn "Enter private key:"
+            sk <- getLine
+            if elem vk _TEST_Vks_ && elem sk _TEST_Sks_ then do
+                putStrLn $ "Successfully authenticated as " <> vk
+                -- TODO record the authentication in a new wallet
+                startWallet w
+            else do
+                putStrLn "Invalid match, unable to authenticate"
+                startWallet w
+        -- Exit
+        '5' -> do
             pure ()
         _ -> do
             print "Unexpected choice"

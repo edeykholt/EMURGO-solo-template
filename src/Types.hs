@@ -14,6 +14,7 @@ _TEST_ALICE_VK_ = "Alice"
 _TEST_BOB_VK_ = "Bob"
 _TEST_CAROL_VK_ = "Carol"
 _TEST_DAN_VK_ = "Dan"
+_TEST_Vks_ = [_TEST_ALICE_VK_, _TEST_BOB_VK_, _TEST_CAROL_VK_, _TEST_DAN_VK_]
 
 -- signing key, or private key
 type Sk = String
@@ -21,6 +22,7 @@ _TEST_ALICE_SK_ = "AAA"
 _TEST_BOB_SK_ = "BBB"
 _TEST_CAROL_SK_ = "CCC"
 _TEST_DAN_SK_ = "DDD"
+_TEST_Sks_ = [_TEST_ALICE_SK_ , _TEST_BOB_SK_ , _TEST_CAROL_SK_ , _TEST_DAN_SK_ ]
 
 -- alternation-based ad-hoc polymorphism
 -- data RequestTx =
