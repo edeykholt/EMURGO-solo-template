@@ -8,7 +8,7 @@ import Control.Monad.State
 import Data.Char (toUpper)
 
 mkWallet :: [Account] -> State Wallet ()
-mkWallet as = put $ Wallet as 999 -- no active account
+mkWallet as = put $ Wallet as 999 Nothing -- no active account and not authenticated
 
 -- TODO consider defining a custom typeclass !!!
 

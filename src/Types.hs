@@ -50,26 +50,23 @@ _TEST_UTCTime_ = mkUTCTime (2023, 01, 01) (01, 0, 0)
 
 -- Varoius kinds of Account Request Transactions share the same base set of property types
 data AccountRequestTxBase = AccountRequestTxBase {
-    btx_expirationInSeconds     :: Natural
-    , btx_accountId             :: String  -- redundant?  Friendly Name?
+    -- btx_expirationInSeconds     :: Natural
+    btx_accountId             :: String  -- redundant?  Friendly Name?
     , btx_txId                  :: String
     , btx_txCreator             :: Vk
-    , btx_txSignature           :: String
+    -- , btx_txSignature           :: String
     , btx_createdDateTime       :: UTCTime
     , btx_txState               :: TxState
-    , btx_isFinalized           :: Bool
     , btx_voteTxs               :: [] AccountTxVoteTx
 } deriving Show
-_TEST_ARTxBase_ = AccountRequestTxBase 100 "accountId1" "txId" _TEST_ALICE_VK_ "sig" _TEST_UTCTime_ TxRequested False []
+_TEST_ARTxBase_ = AccountRequestTxBase "accountId1" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxRequested []
 
 -- Request to create a new multisig account
 data CreateAccountTx = CreateAccountTx {
     ctx_base                     :: AccountRequestTxBase
-    -- required additional signers
-    , ctx_additionalSigners      :: [] Vk  -- authorized endorsers
-    , ctx_approvalThreshold      :: Natural
+    , ctx_account                :: Account
 } deriving Show
-_TEST_CreateAccountTx_ = CreateAccountTx _TEST_ARTxBase_ [_TEST_ALICE_VK_, _TEST_BOB_VK_] 2
+_TEST_CreateAccountTx_ = CreateAccountTx _TEST_ARTxBase_ _TEST_ACCOUNT_
 
 -- Request to spend
 data SpendRequestTx = SpendRequestTx {
@@ -106,19 +103,20 @@ data Account = Account {
     , a_signers :: [] Vk
     , a_requiredSigs :: Int
     , a_balance :: Int
-    , a_createAccountTx :: CreateAccountTx
+    , a_createAccountTx :: Maybe CreateAccountTx
     , a_spendTxs :: [] SpendRequestTx
     , a_addSignerRequestTxs :: [] AddSignerRequestTx
     , a_removeSignerRequestTxs :: [] RemoveSignerRequestTx
     , s_updateNumSignersRequestTxs :: [] UpdateNumSignersRequestTx
 } deriving Show
-_TEST_ACCOUNT_ = Account "accountId" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 _TEST_CreateAccountTx_  [] [] [] []
+_TEST_ACCOUNT_ = Account "accountId" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 (Just _TEST_CreateAccountTx_) [] [] [] []
 
 data Wallet = Wallet {
    ah_accounts              :: [] Account
    , ah_activeAccountIndex  :: Int
+   , ah_authenticatedVk     :: Maybe Vk
    } deriving Show
-_TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] 0 -- initial account is active
+_TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] 0 Nothing -- initial account is active
 
 data AccountTxVoteTx = AccountTxVoteTx {
     atxv_accountId     :: String
