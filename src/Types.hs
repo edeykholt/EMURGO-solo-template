@@ -64,7 +64,7 @@ _TEST_ARTxBase_ = AccountRequestTxBase "accountId1" "txId" _TEST_ALICE_VK_ _TEST
 -- Request to create a new multisig account
 data CreateAccountTx = CreateAccountTx {
     ctx_base                     :: AccountRequestTxBase
-    , ctx_account                :: Account
+    , ctx_account                :: Account  -- TODO usage issue might cause unintended recursion
 } deriving Show
 _TEST_CreateAccountTx_ = CreateAccountTx _TEST_ARTxBase_ _TEST_ACCOUNT_
 
@@ -103,20 +103,20 @@ data Account = Account {
     , a_signers :: [] Vk
     , a_requiredSigs :: Int
     , a_balance :: Int
-    , a_createAccountTx :: Maybe CreateAccountTx
+    , a_createAccountTx :: Maybe CreateAccountTx -- TODO usage issue might cause recursion
     , a_spendTxs :: [] SpendRequestTx
     , a_addSignerRequestTxs :: [] AddSignerRequestTx
     , a_removeSignerRequestTxs :: [] RemoveSignerRequestTx
     , s_updateNumSignersRequestTxs :: [] UpdateNumSignersRequestTx
 } deriving Show
-_TEST_ACCOUNT_ = Account "accountId" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 (Just _TEST_CreateAccountTx_) [] [] [] []
+_TEST_ACCOUNT_ = Account "accountId" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 Nothing [] [] [] []
 
 data Wallet = Wallet {
    ah_accounts              :: [] Account
    , ah_activeAccountIndex  :: Int
    , ah_authenticatedVk     :: Maybe Vk
    } deriving Show
-_TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] 0 Nothing -- initial account is active
+_TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] 0 Nothing -- initial account is active, no user authenticated
 
 data AccountTxVoteTx = AccountTxVoteTx {
     atxv_accountId     :: String

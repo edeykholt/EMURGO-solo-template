@@ -55,15 +55,17 @@ startWallet w = do
     char <- getUpperChar
     case char of
         '1' -> do
-          listAccounts w
-          startWallet  w
+            -- List Accounts
+            listAccounts w
+            startWallet  w
         '2' -> do
             -- Select Account
             putStrLn "Enter account number:"
             char2 <- getUpperChar
             let idx = digitToInt char2
             
-            if idx > length (ah_accounts w) - 1 then 
+            -- check if index is valid or the active index is not yet set
+            if (idx > length (ah_accounts w) - 1) || (999 == ah_activeAccountIndex w) then 
                 do
                     putStrLn "Number out of range."
                     startWallet w
@@ -98,7 +100,7 @@ startWallet w = do
                 -- get VKeys of additional signers, in addition to the authenticated one
                 putStrLn "  Enter VKeys of other signers:"
                 let existingSigners = [fromJust $ ah_authenticatedVk w]
-                allSigners <- getAddlSigner existingSigners (numPotentialSigners - 1)
+                allSigners <- addSigner existingSigners (numPotentialSigners - 1)
 
                 -- Now that we have we've collected parameters, create the proposed new Account
                 let newAccount = Account "Shared Account" allSigners thresholdNum 100 Nothing [] [] [] []
@@ -111,7 +113,8 @@ startWallet w = do
                 
                 -- Update the wallet with the new Account
                 let newAccounts = ah_accounts w ++ [newAccount]
-                let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w)
+                let newIndex = length newAccounts - 1
+                let newWallet = Wallet newAccounts newIndex authenticatedUser
                 print newWallet
                 putStrLn "Added new account to wallet"
                 startWallet newWallet
@@ -136,15 +139,15 @@ startWallet w = do
             print "Unexpected choice"
             startWallet w
 
-getAddlSigner :: [Vk] -> Int -> IO [Vk]
-getAddlSigner vks 0 = pure vks
-getAddlSigner vks numAddlSigners = do
+addSigner :: [Vk] -> Int -> IO [Vk]
+addSigner vks 0 = pure vks
+addSigner vks numAddlSigners = do
     putStrLn $ "  Public Key of signer " ++ [intToDigit numAddlSigners] ++ ": "
     vk <- getLine
     -- TODO check validity here. Should be in list of sample VKs for this purpose
     let newVks = vks ++ [vk]
     if numAddlSigners > 0 then
-        getAddlSigner newVks (numAddlSigners - 1)
+        addSigner newVks (numAddlSigners - 1)
     else
         pure newVks
 
