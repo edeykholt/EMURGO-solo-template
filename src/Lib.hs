@@ -8,7 +8,7 @@ import Control.Monad.State
 import Data.Char (toUpper)
 
 mkWallet :: [Account] -> State Wallet ()
-mkWallet as = put $ Wallet as 999 Nothing -- no active account and not authenticated
+mkWallet as = put $ Wallet as Nothing Nothing -- no active account and not authenticated
 
 -- TODO consider defining a custom typeclass !!!
 
@@ -40,15 +40,6 @@ addOrUpdateCreateTx = undefined
 addOrUpdateSpendTx :: Account -> SpendRequestTx -> Either RequestException Account
 addOrUpdateSpendTx = undefined
 
-addOrUpdateAddSignerTx :: Account -> AddSignerRequestTx -> Either RequestException Account
-addOrUpdateAddSignerTx = undefined
-
-addOrUpdateRemoveSignerTx :: Account -> RemoveSignerRequestTx -> Either RequestException Account
-addOrUpdateRemoveSignerTx = undefined
-
-addOrUpdateUpdateNumSignersTx :: Account -> UpdateNumSignersRequestTx -> Either RequestException Account
-addOrUpdateUpdateNumSignersTx = undefined
-
 -- functions to help UI listings
 getAllWalletTxs ::  ()
 getAllWalletTxs = undefined
@@ -72,8 +63,8 @@ verifyAccountUpdate :: Account -> Account -> Either RequestException Account
 verifyAccountUpdate = undefined
 
 -- vote on various transaction types
-voteOnSpendTx :: SpendRequestTx -> AccountTxVoteTx -> Either RequestException SpendRequestTx
-voteOnSpendTx = undefined
+endorseSpendTx :: SpendRequestTx -> AccountTxVoteTx -> Either RequestException SpendRequestTx
+endorseSpendTx = undefined
 -- voteOnAddSignerTx
 -- voteOnRemoveSignerTx
 -- voteOnUpdateNumSignersTx

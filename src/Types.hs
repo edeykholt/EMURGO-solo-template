@@ -8,6 +8,7 @@ import Data.Time
 import Text.Show.Functions
 import Data.Time.Format.ISO8601 (yearFormat)
 
+
 -- verification key, or public key
 type Vk = String
 _TEST_ALICE_VK_ = "Alice"
@@ -52,12 +53,12 @@ _TEST_UTCTime_ = mkUTCTime (2023, 01, 01) (01, 0, 0)
 data AccountRequestTxBase = AccountRequestTxBase {
     -- btx_expirationInSeconds     :: Natural
     btx_accountId             :: String  -- redundant?  Friendly Name?
-    , btx_txId                  :: String
-    , btx_txCreator             :: Vk
-    -- , btx_txSignature           :: String
-    , btx_createdDateTime       :: UTCTime
-    , btx_txState               :: TxState
-    , btx_voteTxs               :: [] AccountTxVoteTx
+    , btx_txId                :: String
+    , btx_txCreator           :: Vk
+    -- , btx_txSignature      :: String
+    , btx_createdDateTime     :: UTCTime
+    , btx_txState             :: TxState
+    , btx_endorseTxs          :: [] AccountTxVoteTx
 } deriving Show
 _TEST_ARTxBase_ = AccountRequestTxBase "accountId1" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxRequested []
 
@@ -75,28 +76,26 @@ data SpendRequestTx = SpendRequestTx {
 } deriving Show
 _TEST_SpendRequestTx_ = SpendRequestTx _TEST_ARTxBase_ 10
 
--- Request to add a signer
-data AddSignerRequestTx = AddSignerRequestTx {
-    astx_base            :: AccountRequestTxBase
-    , astx_signer        :: Vk
-} deriving Show
-_TEST_AddSignerRequestTx_ = AddSignerRequestTx _TEST_ARTxBase_ _TEST_CAROL_VK_
+-- TODO implement Request to add a signer
+-- data AddSignerRequestTx = AddSignerRequestTx {
+--    astx_base            :: AccountRequestTxBase
+--    , astx_signer        :: Vk
+-- } deriving Show
+-- _TEST_AddSignerRequestTx_ = AddSignerRequestTx _TEST_ARTxBase_ _TEST_CAROL_VK_
 
--- Request to remove a signer
-data RemoveSignerRequestTx = RemoveSignerRequestTx {
-    rstx_base            :: AccountRequestTxBase
-    , rstx_signer        :: Vk
-} deriving Show
-_TEST_RemoveSignerRequestTx_ = RemoveSignerRequestTx _TEST_ARTxBase_ _TEST_CAROL_VK_
+-- TODO implement a Request to remove a signer
+-- data RemoveSignerRequestTx = RemoveSignerRequestTx {
+--    rstx_base            :: AccountRequestTxBase
+--    , rstx_signer        :: Vk
+-- } deriving Show
+-- _TEST_RemoveSignerRequestTx_ = RemoveSignerRequestTx _TEST_ARTxBase_ _TEST_CAROL_VK_
 
--- Request to change the approval threshold, i.e., number of signers
-data UpdateNumSignersRequestTx = UpdateNumSignersRequestTx {
-    untx_base    :: AccountRequestTxBase
-    , untx_newThreshold :: Natural
-} deriving Show
-_TEST_UpdateNumSignerRequestTx_ = UpdateNumSignersRequestTx _TEST_ARTxBase_ 3
-
--- consider using dynamicCast type witnesses?
+-- TODO Request to change the approval threshold, i.e., number of reuired endorsers
+-- data UpdateNumEndorsersRequestTx = UpdateNumSignersRequestTx {
+--     untx_base    :: AccountRequestTxBase
+--    , untx_newThreshold :: Natural
+-- } deriving Show
+-- _TEST_UpdateNumEndorsersRequestTx_ = UpdateNumSignersRequestTx _TEST_ARTxBase_ 3
 
 data Account = Account {
     a_accountId :: String
@@ -105,18 +104,18 @@ data Account = Account {
     , a_balance :: Int
     , a_createAccountTx :: Maybe CreateAccountTx -- TODO usage issue might cause recursion
     , a_spendTxs :: [] SpendRequestTx
-    , a_addSignerRequestTxs :: [] AddSignerRequestTx
-    , a_removeSignerRequestTxs :: [] RemoveSignerRequestTx
-    , s_updateNumSignersRequestTxs :: [] UpdateNumSignersRequestTx
+    -- , a_addSignerRequestTxs :: [] AddSignerRequestTx
+    -- , a_removeSignerRequestTxs :: [] RemoveSignerRequestTx
+    -- , s_updateNumSignersRequestTxs :: [] UpdateNumSignersRequestTx
 } deriving Show
-_TEST_ACCOUNT_ = Account "accountId" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 Nothing [] [] [] []
+_TEST_ACCOUNT_ = Account "Test Account" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 Nothing []
 
 data Wallet = Wallet {
    ah_accounts              :: [] Account
-   , ah_activeAccountIndex  :: Int
+   , ah_activeAccountIndex  :: Maybe Int
    , ah_authenticatedVk     :: Maybe Vk
    } deriving Show
-_TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] 0 Nothing -- initial account is active, no user authenticated
+_TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] Nothing Nothing -- initial account is active, no user authenticated
 
 data AccountTxVoteTx = AccountTxVoteTx {
     atxv_accountId     :: String
