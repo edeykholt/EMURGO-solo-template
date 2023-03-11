@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use when" #-}
+{-# HLINT ignore "Use print" #-}
 module Actions where
 
 import Lib
@@ -118,20 +119,20 @@ startWallet w = do
                             allSigners <- addSigner existingSigners (numPotentialSigners - 1)
 
                             -- Now that we have we've collected parameters, create the proposed new Account
-                            let newAccount = Account accountName allSigners thresholdNum 100 Nothing []
+                            let newAccount = Account accountName allSigners thresholdNum 100 []
 
-                            -- For now, there will be no approval needed to create the account. TODO create an approval flow for new account
+                            -- In the current design, no approval is needed to create the account. There's a known risk to usage is if it is created with bad Vks.
                             currentTime <- getCurrentTime
                             let newAccountBaseTx = AccountRequestTxBase (a_accountId newAccount) "txId" (fromJust $ ah_authenticatedVk w) currentTime TxApproved []
-                            let createAccountTx = CreateAccountTx newAccountBaseTx newAccount
-                            -- TODO createAccountTx is unused after this, because current design assumes creation doesn't require approval
                             
                             -- Update the wallet with the new Account
                             let newAccounts = ah_accounts w ++ [newAccount]
                             let newIndex = length newAccounts - 1
                             let newWallet = Wallet newAccounts (Just newIndex) authenticatedUser
+
                             -- print newWallet
                             putStrLn "Added new account to wallet"
+
                             startWallet newWallet
                 
                 '4' -> do
@@ -153,55 +154,49 @@ authenticatePk w = do
     vk <- getLine
     putStrLn "Now, enter your private key:"
     sk <- getLine
-    if elem vk _TEST_Vks_ && elem sk _TEST_Sks_ then do
-        putStrLn $ "Successfully authenticated as " ++ vk
-        let newWallet = Wallet (ah_accounts w) (ah_activeAccountIndex w) (pure vk)
-        pure newWallet
-    else do
-        putStrLn "Invalid match, unable to authenticate"
-        pure w
+    -- For now, just do a non-cryptographic test against known list of Vks and Sks.
+    if elem vk _TEST_Vks_ && elem sk _TEST_Sks_ 
+        then do
+            putStrLn $ "Successfully authenticated as " ++ vk
+            let newWallet = Wallet (ah_accounts w) (ah_activeAccountIndex w) (pure vk)
+            pure newWallet
+        else do
+            putStrLn "Invalid match, unable to authenticate"
+            pure w
 
 addSigner :: [Vk] -> Int -> IO [Vk]
 addSigner vks 0 = pure vks
 addSigner vks numAddlSigners = do
     putStrLn $ "  Public Key of signer " ++ [intToDigit numAddlSigners] ++ ": "
     vk <- getLine
-    -- TODO check validity here. Should be in list of sample VKs for this purpose
+    -- TODO check validity here. Should be in list of sample VKs for this purpose. A set.
     let newVks = vks ++ [vk]
     if numAddlSigners > 0 then
         addSigner newVks (numAddlSigners - 1)
     else
         pure newVks
 
-processWalletAction :: Wallet -> Char -> Either WalletException Wallet
-processWalletAction w c = case c of 
-    '1' -> pure Right listAccounts w
-    'q' -> Left WalletException2
-    _ -> Left WalletException1
-
 listAccounts :: Wallet -> IO ()
 listAccounts w = do
-    -- ww <- w -- change to a for comprehension?
     putStrLn "Accounts:"
-    when (null $ ah_accounts w ) $
-        putStrLn "  (none)"
-    unless (null $ ah_accounts w ) $ do
-        let zah_accounts = zip [0,1..] $ ah_accounts w
-        -- TODO number them and pretty print
-        -- TODO Indicate which one is active, if set to a valid one
-        forM_ zah_accounts listAccount
+    if null $ ah_accounts w
+        then do
+            putStrLn "  (none)"
+        else do
+            let zah_accounts = zip [0,1..] $ ah_accounts w
+            -- TODO number them and pretty print
+            -- TODO Indicate which one is active, if set to a valid one
+            forM_ zah_accounts listAccount
 
 listAccount :: (Int, Account) -> IO ()
 listAccount (i,a) = do
     putStr "#" >> putStr [intToDigit i] >> putStr " "
     putStrLn $ a_accountId a
-    -- printAccount a
 
 printAccount :: Account -> IO ()
 printAccount a = do
     -- TODO make this prettier, with labels2
     putStrLn $ show a
-    putStrLn ""
 
 menuOptions :: [(Int, String)]
 menuOptions = [(1, "Print Account")
@@ -209,7 +204,6 @@ menuOptions = [(1, "Print Account")
                 , (3, "Print Pending Txs")
                 , (4, "Create Spend Tx")
                 , (5, "Endorse Pending Spend Tx")
-                -- , (7, "Modify or Vote on Proposed Signers or Threshold")
                 , (9, "Return to Wallet")
                 ]
 
@@ -261,12 +255,4 @@ startAccount w = do
                     pure ()
                 _ -> print "Unexpected entry!" >>
                     startAccount w
-            pure () -- return to wallet
-
-listAllWallets :: IO ()
-listAllWallets = undefined
-
-promptForTx :: IO()
-promptForTx = undefined
-
-
+            pure () -- return to caller, e.g. wallet mode

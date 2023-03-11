@@ -25,12 +25,6 @@ _TEST_CAROL_SK_ = "CCC"
 _TEST_DAN_SK_ = "DDD"
 _TEST_Sks_ = [_TEST_ALICE_SK_ , _TEST_BOB_SK_ , _TEST_CAROL_SK_ , _TEST_DAN_SK_ ]
 
--- alternation-based ad-hoc polymorphism
--- data RequestTx =
-    -- | SpendRequestTx Int
-    -- | AddRemoveSignerRequestTx Int
-    -- | UpdateThresholdRequestTx Int
-
 -- Account Request Transactions, below, go through a number of potential states resolved as Expired or Approved
 data TxState = TxRequested | TxPending | TxApproved | TxRejected | TxExpired | TxApprovedNsf | TxOtherError
     deriving Show
@@ -62,13 +56,6 @@ data AccountRequestTxBase = AccountRequestTxBase {
 } deriving Show
 _TEST_ARTxBase_ = AccountRequestTxBase "accountId1" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxRequested []
 
--- Request to create a new multisig account
-data CreateAccountTx = CreateAccountTx {
-    ctx_base                     :: AccountRequestTxBase
-    , ctx_account                :: Account  -- TODO usage issue might cause unintended recursion
-} deriving Show
-_TEST_CreateAccountTx_ = CreateAccountTx _TEST_ARTxBase_ _TEST_ACCOUNT_
-
 -- Request to spend
 data SpendRequestTx = SpendRequestTx {
     stx_base             :: AccountRequestTxBase
@@ -76,39 +63,14 @@ data SpendRequestTx = SpendRequestTx {
 } deriving Show
 _TEST_SpendRequestTx_ = SpendRequestTx _TEST_ARTxBase_ 10
 
--- TODO implement Request to add a signer
--- data AddSignerRequestTx = AddSignerRequestTx {
---    astx_base            :: AccountRequestTxBase
---    , astx_signer        :: Vk
--- } deriving Show
--- _TEST_AddSignerRequestTx_ = AddSignerRequestTx _TEST_ARTxBase_ _TEST_CAROL_VK_
-
--- TODO implement a Request to remove a signer
--- data RemoveSignerRequestTx = RemoveSignerRequestTx {
---    rstx_base            :: AccountRequestTxBase
---    , rstx_signer        :: Vk
--- } deriving Show
--- _TEST_RemoveSignerRequestTx_ = RemoveSignerRequestTx _TEST_ARTxBase_ _TEST_CAROL_VK_
-
--- TODO Request to change the approval threshold, i.e., number of reuired endorsers
--- data UpdateNumEndorsersRequestTx = UpdateNumSignersRequestTx {
---     untx_base    :: AccountRequestTxBase
---    , untx_newThreshold :: Natural
--- } deriving Show
--- _TEST_UpdateNumEndorsersRequestTx_ = UpdateNumSignersRequestTx _TEST_ARTxBase_ 3
-
 data Account = Account {
     a_accountId :: String
     , a_signers :: [] Vk
     , a_requiredSigs :: Int
     , a_balance :: Int
-    , a_createAccountTx :: Maybe CreateAccountTx -- TODO usage issue might cause recursion
     , a_spendTxs :: [] SpendRequestTx
-    -- , a_addSignerRequestTxs :: [] AddSignerRequestTx
-    -- , a_removeSignerRequestTxs :: [] RemoveSignerRequestTx
-    -- , s_updateNumSignersRequestTxs :: [] UpdateNumSignersRequestTx
 } deriving Show
-_TEST_ACCOUNT_ = Account "Test Account" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 Nothing []
+_TEST_ACCOUNT_ = Account "Test Account" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 []
 
 data Wallet = Wallet {
    ah_accounts              :: [] Account
