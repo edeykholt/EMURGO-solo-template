@@ -106,34 +106,42 @@ startWallet w = do
                             putStrLn "  Number of required signers:"
                             x <- getUpperChar
                             let thresholdNum = digitToInt x
-                            -- TODO add error checking, in range of 1-9
-                            
-                            putStrLn "  Number of potential signers (including you):"
-                            y <- getUpperChar
-                            let numPotentialSigners = digitToInt y
-                            -- TODO add error checking, in range of threshold-9
+                            let isInvalidThreshold = thresholdNum < 2 || thresholdNum > 9
+                            if isInvalidThreshold
+                                then do
+                                    putStrLn "Invalid number of required signers"
+                                    startWallet w
+                                else do
+                                    putStrLn "  Number of potential signers (including you):"
+                                    y <- getUpperChar
+                                    let numPotentialSigners = digitToInt y
+                                    let isInvalidPotential = numPotentialSigners < thresholdNum || numPotentialSigners > 9
+                                    if isInvalidPotential
+                                        then do
+                                            putStrLn "Invalid number of potential signers"
+                                            startWallet w
+                                        else do
+                                            -- get VKeys of additional signers, in addition to the authenticated one
+                                            putStrLn "  Enter VKeys of other signers:"
+                                            let existingSigners = [fromJust $ ah_authenticatedVk w]
+                                            allSigners <- addSigner existingSigners (numPotentialSigners - 1)
 
-                            -- get VKeys of additional signers, in addition to the authenticated one
-                            putStrLn "  Enter VKeys of other signers:"
-                            let existingSigners = [fromJust $ ah_authenticatedVk w]
-                            allSigners <- addSigner existingSigners (numPotentialSigners - 1)
+                                            -- Now that we have we've collected parameters, create the proposed new Account
+                                            let newAccount = Account accountName allSigners thresholdNum 100 []
 
-                            -- Now that we have we've collected parameters, create the proposed new Account
-                            let newAccount = Account accountName allSigners thresholdNum 100 []
+                                            -- In the current design, no approval is needed to create the account. There's a known risk to usage is if it is created with bad Vks.
+                                            currentTime <- getCurrentTime
+                                            let newAccountBaseTx = AccountRequestTxBase (a_accountId newAccount) "txId" (fromJust $ ah_authenticatedVk w) currentTime TxApproved []
+                                            
+                                            -- Update the wallet with the new Account
+                                            let newAccounts = ah_accounts w ++ [newAccount]
+                                            let newIndex = length newAccounts - 1
+                                            let newWallet = Wallet newAccounts (Just newIndex) authenticatedUser
 
-                            -- In the current design, no approval is needed to create the account. There's a known risk to usage is if it is created with bad Vks.
-                            currentTime <- getCurrentTime
-                            let newAccountBaseTx = AccountRequestTxBase (a_accountId newAccount) "txId" (fromJust $ ah_authenticatedVk w) currentTime TxApproved []
-                            
-                            -- Update the wallet with the new Account
-                            let newAccounts = ah_accounts w ++ [newAccount]
-                            let newIndex = length newAccounts - 1
-                            let newWallet = Wallet newAccounts (Just newIndex) authenticatedUser
+                                            -- print newWallet
+                                            putStrLn "Added new account to wallet"
 
-                            -- print newWallet
-                            putStrLn "Added new account to wallet"
-
-                            startWallet newWallet
+                                            startWallet newWallet
                 
                 '4' -> do
                     -- Authenticate and restart wallet

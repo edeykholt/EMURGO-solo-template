@@ -35,7 +35,7 @@ data WalletException = WalletException1 | WalletException2
 data AccountException = AccountException1 | AccountException2
     deriving Show
 
--- TODO is there a simpler time function?
+-- Couldn't find an easier function such as (String -> UTCTime)
 mkUTCTime :: (Integer, Int, Int)
           -> (Int, Int, Pico)
           -> UTCTime
@@ -49,7 +49,6 @@ data AccountRequestTxBase = AccountRequestTxBase {
     btx_accountId             :: String  -- redundant?  Friendly Name?
     , btx_txId                :: String
     , btx_txCreator           :: Vk
-    -- , btx_txSignature      :: String
     , btx_createdDateTime     :: UTCTime
     , btx_txState             :: TxState
     , btx_endorseTxs          :: [] AccountTxVoteTx
