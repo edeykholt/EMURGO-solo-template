@@ -223,13 +223,13 @@ listMenuOptions (a : as) = do
 
 startAccount :: Wallet -> IO ()
 startAccount w = do
-    let activeAccountIndex = ah_activeAccountIndex w
-    if isNothing activeAccountIndex
-        then do
+    let maybeAccountIndex = ah_activeAccountIndex w
+    case maybeAccountIndex of
+        Nothing -> do
             putStrLn "Expected active account index to be set"
             pure ()
-        else do
-            let activeAccount = ah_accounts w !! fromJust activeAccountIndex
+        Just accountIndex -> do
+            let activeAccount = ah_accounts w !! accountIndex
     
             putStrLn $ "ACCOUNT MODE ____ account " ++ a_accountId activeAccount ++ ". ___ Authenticated as " ++ fromJust (ah_authenticatedVk w) ++ "______"
             listMenuOptions menuOptions
