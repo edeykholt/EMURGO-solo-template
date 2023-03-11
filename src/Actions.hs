@@ -47,95 +47,105 @@ startWallet :: Wallet -> IO ()
 startWallet w = do
     putStr "WALLET MODE _____" 
     let maybeAuthenticatedVk = ah_authenticatedVk w
-    if isJust maybeAuthenticatedVk then
-        do
-            putStrLn $ "Authenticated as " ++ fromJust maybeAuthenticatedVk ++ "______"
-        else do
+    if isNothing maybeAuthenticatedVk
+        then do
             putStrLn "No user currently authenticated _________"
             -- authenticate and restart
             newWallet <- authenticatePk w
             startWallet newWallet
+        else do
+            putStrLn $ "Authenticated as " ++ fromJust maybeAuthenticatedVk ++ "______"
+            -- continue below
 
-    putStrLn "Choose a wallet command:\n 1. List Accounts\n 2. Select Account \n 3. Add Account\n 4. Authenticate \n 9. Quit"
-    char <- getUpperChar
-    case char of
-        '1' -> do
-            -- List Accounts
             listAccounts w
-            startWallet  w
-        '2' -> do
-            -- Select Account
-            putStrLn "Enter account number:"
-            char2 <- getUpperChar
-            let selectedIdx = digitToInt char2
-            
-            -- check if index is valid -- or the active index is not yet set
-            if selectedIdx + 1 > length (ah_accounts w) -- ) || isNothing (ah_activeAccountIndex w)
-                then do
-                    putStrLn "Number out of range."
+            putStrLn "Choose a wallet command:\n 1. List accounts with detail\n 2. Select Account \n 3. Add Account\n 4. Authenticate \n 9. Quit"
+            selectedCmd <- getUpperChar
+            case selectedCmd of
+                '1' -> do
+                    -- List Accounts
+                    -- TODO update to detailed list
+                    listAccounts w
+                    startWallet  w
+                '2' -> do
+                    -- Select Account
+                    if null (ah_accounts w)
+                        then do
+                            putStrLn "No accounts configured yet"
+                            startWallet w
+                        else do
+                            putStrLn "Enter account number:"
+                            char2 <- getUpperChar
+                            let selectedIdx = digitToInt char2
+                    
+                            -- check if index is valid -- or the active index is not yet set
+                            if selectedIdx + 1 > length (ah_accounts w) -- ) || isNothing (ah_activeAccountIndex w)
+                                then do
+                                    putStrLn "Number out of range."
+                                    startWallet w
+                                else do
+                                    print $ ah_accounts w !! selectedIdx
+                                    let newWallet = Wallet (ah_accounts w) (Just selectedIdx) (ah_authenticatedVk w)
+                                    startAccount newWallet
+                                    startWallet newWallet
+                '3' -> do
+                    -- Add a new account
+
+                    -- precondition is that user if authenticated
+                    let authenticatedUser = ah_authenticatedVk w
+                    if isNothing authenticatedUser 
+                        then do
+                            putStrLn "User must be authenticated to add an account"
+                            startWallet w
+                        else do
+                            putStrLn "Enter new Account information..."
+                            
+                            putStrLn "  Account Name:"
+                            accountName <- getLine
+                            
+                            putStrLn "  Number of required signers:"
+                            x <- getUpperChar
+                            let thresholdNum = digitToInt x
+                            -- TODO add error checking, in range of 1-9
+                            
+                            putStrLn "  Number of potential signers (including you):"
+                            y <- getUpperChar
+                            let numPotentialSigners = digitToInt y
+                            -- TODO add error checking, in range of threshold-9
+
+                            -- get VKeys of additional signers, in addition to the authenticated one
+                            putStrLn "  Enter VKeys of other signers:"
+                            let existingSigners = [fromJust $ ah_authenticatedVk w]
+                            allSigners <- addSigner existingSigners (numPotentialSigners - 1)
+
+                            -- Now that we have we've collected parameters, create the proposed new Account
+                            let newAccount = Account accountName allSigners thresholdNum 100 Nothing []
+
+                            -- For now, there will be no approval needed to create the account. TODO create an approval flow for new account
+                            currentTime <- getCurrentTime
+                            let newAccountBaseTx = AccountRequestTxBase (a_accountId newAccount) "txId" (fromJust $ ah_authenticatedVk w) currentTime TxApproved []
+                            let createAccountTx = CreateAccountTx newAccountBaseTx newAccount
+                            -- TODO createAccountTx is unused after this, because current design assumes creation doesn't require approval
+                            
+                            -- Update the wallet with the new Account
+                            let newAccounts = ah_accounts w ++ [newAccount]
+                            let newIndex = length newAccounts - 1
+                            let newWallet = Wallet newAccounts (Just newIndex) authenticatedUser
+                            -- print newWallet
+                            putStrLn "Added new account to wallet"
+                            startWallet newWallet
+                
+                '4' -> do
+                    -- Authenticate and restart wallet
+                    newWallet <- authenticatePk w
+                    startWallet newWallet
+                
+                '9' -> do
+                    -- Exit
+                    pure ()
+
+                _ -> do
+                    print "Unexpected choice"
                     startWallet w
-                else do
-                    print $ ah_accounts w !! selectedIdx
-                    let newWallet = Wallet (ah_accounts w) (Just selectedIdx) (ah_authenticatedVk w)
-                    startAccount newWallet
-        '3' -> do
-            -- Add a new account
-
-            -- precondition is that user if authenticated
-            let authenticatedUser = ah_authenticatedVk w
-            if isNothing authenticatedUser then do
-                putStrLn "User must be authenticated to add an account"
-                startWallet w
-            else do
-                putStrLn "Enter new Account information..."
-                
-                putStrLn "  Account Name:"
-                accountName <- getLine
-                
-                putStrLn "  Number of required signers:"
-                x <- getUpperChar
-                let thresholdNum = digitToInt x
-                -- TODO add error checking, in range of 1-9
-                
-                putStrLn "  Number of potential signers (including you):"
-                y <- getUpperChar
-                let numPotentialSigners = digitToInt y
-                -- TODO add error checking, in range of threshold-9
-
-                -- get VKeys of additional signers, in addition to the authenticated one
-                putStrLn "  Enter VKeys of other signers:"
-                let existingSigners = [fromJust $ ah_authenticatedVk w]
-                allSigners <- addSigner existingSigners (numPotentialSigners - 1)
-
-                -- Now that we have we've collected parameters, create the proposed new Account
-                let newAccount = Account "Shared Account" allSigners thresholdNum 100 Nothing []
-
-                -- For now, there will be no approval needed to create the account. TODO create an approval flow for new account
-                currentTime <- getCurrentTime
-                let newAccountBaseTx = AccountRequestTxBase (a_accountId newAccount) "txId" (fromJust $ ah_authenticatedVk w) currentTime TxApproved []
-                let createAccountTx = CreateAccountTx newAccountBaseTx newAccount
-                -- TODO createAccountTx is unused after this, because current design assumes creation doesn't require approval
-                
-                -- Update the wallet with the new Account
-                let newAccounts = ah_accounts w ++ [newAccount]
-                let newIndex = length newAccounts - 1
-                let newWallet = Wallet newAccounts (Just newIndex) authenticatedUser
-                -- print newWallet
-                putStrLn "Added new account to wallet"
-                startWallet newWallet
-        
-        '4' -> do
-            -- Authenticate and restart wallet
-            newWallet <- authenticatePk w
-            startWallet newWallet
-        
-        '9' -> do
-            -- Exit
-            pure ()
-
-        _ -> do
-            print "Unexpected choice"
-            startWallet w
 
 authenticatePk :: Wallet -> IO Wallet
 authenticatePk w = do
@@ -197,9 +207,8 @@ menuOptions :: [(Int, String)]
 menuOptions = [(1, "Print Account")
                 , (2, "Print All Txs")
                 , (3, "Print Pending Txs")
-                , (4, "Authenticate as different user")
-                , (5, "Create Spend Tx")
-                , (6, "Endorse Pending Spend Tx")
+                , (4, "Create Spend Tx")
+                , (5, "Endorse Pending Spend Tx")
                 -- , (7, "Modify or Vote on Proposed Signers or Threshold")
                 , (9, "Return to Wallet")
                 ]
@@ -227,12 +236,10 @@ startAccount w = do
             
             char <- getUpperChar
             case char of
-                
                 '1' -> do
                     -- Print Account
                     printAccount activeAccount
                     startAccount  w
-                
                 '2' -> do
                     -- Print All Txs
                     print "Not yet implemented"
@@ -242,22 +249,19 @@ startAccount w = do
                     print "Not yet implemented"
                     startAccount w
                 '4' -> do
-                    -- Authenticate as different user
-                    newWallet <- authenticatePk w
-                    startAccount newWallet
-                '5' -> do
                     -- Create Spend Tx
                     print "Not yet implemented"
                     startAccount w
-                '6' -> do
+                '5' -> do
                     -- Endorse Pending Spend Tx
                     print "Not yet implemented"
                     startAccount w
                 '9' ->
-                    -- Return to Wallet
-                    startWallet w
+                    -- Exit account. Return to wallet
+                    pure ()
                 _ -> print "Unexpected entry!" >>
                     startAccount w
+            pure () -- return to wallet
 
 listAllWallets :: IO ()
 listAllWallets = undefined
