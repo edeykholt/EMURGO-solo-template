@@ -58,7 +58,7 @@ startWallet w = do
             -- continue below
 
             listAccounts w
-            putStrLn "Choose a wallet command:\n 1. List accounts with detail\n 2. Select Account \n 3. Add Account\n 4. Authenticate \n 9. Quit"
+            putStrLn "Choose a wallet command:\n 1. List accounts with detail\n 2. Select Account \n 3. Add Account\n 4. Authenticate \n 9. Exit App"
             selectedCmd <- getUpperChar
             case selectedCmd of
                 '1' -> do
