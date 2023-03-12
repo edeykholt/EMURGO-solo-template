@@ -93,6 +93,7 @@ startWallet = do
                                 else do
                                     liftIO $ print $ accounts !! selectedIdx
                                     let newWallet = Wallet accounts (Just selectedIdx) maybeAuthenticatedVk
+                                    put newWallet
                                     liftIO $ startAccount newWallet
                                     startWallet
                 '3' -> do
