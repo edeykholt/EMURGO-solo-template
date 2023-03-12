@@ -177,12 +177,16 @@ addSigner vks 0 = pure vks
 addSigner vks numAddlSigners = do
     putStrLn $ "  Public Key of signer " ++ [intToDigit numAddlSigners] ++ ": "
     vk <- getLine
-    -- TODO check validity here. Should be in list of sample VKs for this purpose. A set.
-    let newVks = vks ++ [vk]
-    if numAddlSigners > 0 then
-        addSigner newVks (numAddlSigners - 1)
-    else
-        pure newVks
+    if vk `notElem` _TEST_Vks_
+        then do
+            putStrLn "Public key is not in known list. Try again."
+            addSigner vks numAddlSigners
+        else do
+            let newVks = vks ++ [vk]
+            if numAddlSigners > 0 then
+                addSigner newVks (numAddlSigners - 1)
+            else
+                pure newVks
 
 listAccounts :: Wallet -> IO ()
 listAccounts w = do
