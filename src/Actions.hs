@@ -172,8 +172,7 @@ authenticatePk w = do
     vk <- getLine
     putStrLn "Now, enter your private key:"
     sk <- getLine
-    -- For now, just do a non-cryptographic test against known list of Vks and Sks.
-    if elem vk _TEST_Vks_ && elem sk _TEST_Sks_ 
+    if isAuthenticatedPair vk sk
         then do
             putStrLn $ "Successfully authenticated as " ++ vk
             let newWallet = Wallet (ah_accounts w) (ah_activeAccountIndex w) (pure vk)
