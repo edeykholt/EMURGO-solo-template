@@ -58,7 +58,7 @@ _TEST_ARTxBase_ = AccountRequestTxBase "accountId1" "txId" _TEST_ALICE_VK_ _TEST
 -- Request to spend
 data SpendRequestTx = SpendRequestTx {
     stx_base             :: AccountRequestTxBase
-    , stx_spendAmount    :: Natural
+    , stx_spendAmount    :: Int
 } deriving Show
 _TEST_SpendRequestTx_ = SpendRequestTx _TEST_ARTxBase_ 10
 
@@ -88,6 +88,7 @@ data AccountTxVoteTx = AccountTxVoteTx {
 _TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02" True
 
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx
+    deriving Show
 
 -- Transaction time to live before expired, in seconds
 _TxTTL_ = 600 

@@ -9,8 +9,24 @@ import Data.Char (toUpper)
 -- mkWallet :: [Account] -> State Wallet ()
 -- mkWallet as = put $ Wallet as Nothing Nothing -- no active account and not authenticated
 
-addOrUpdateSpendTx :: Account -> SpendRequestTx -> Either RequestException Account
-addOrUpdateSpendTx = undefined
+-- addOrUpdateSpendTx :: Account -> SpendRequestTx -> Either RequestException Account
+-- TODO not yet implemented
+--- addOrUpdateSpendTx a _ = testSpendRequestTx _TEST_ALICE_VK_ 10 a
+
+addSpendRequestTx :: Vk -> Int -> Account -> Either RequestException Account
+addSpendRequestTx vk amt (Account id signers bal threshhold spendRequests) = 
+    -- TODO verify vk
+    -- TODO verify amt
+    Right $ Account id signers bal threshhold $ spendRequests ++ [SpendRequestTx {
+        stx_base=AccountRequestTxBase {
+            btx_txState=TxRequested
+            , btx_txId="123412341234"
+            , btx_txCreator=vk
+            , btx_endorseTxs=[]
+            , btx_createdDateTime=_TEST_UTCTime_
+            , btx_accountId="TESTACCOUNT"}
+        , stx_spendAmount=amt
+        }]
 
 -- functions to help UI listings
 getPendingTxsForVk :: ()
