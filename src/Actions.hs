@@ -20,9 +20,10 @@ import GHC.IO hiding (liftIO)
 import GHC.Num (integerToNatural)
 import GHC.Natural (mkNatural)
 import Control.Monad.Cont hiding (liftIO)
-import Control.Monad.State ( MonadState (get, put), evalStateT, liftIO)
+import Control.Monad.State ( MonadState (get, put), evalStateT, liftIO, execStateT, StateT (StateT))
 import System.Console.ANSI
 import Text.XML.HXT.DOM.Util (decimalStringToInt)
+import Control.Monad.ST
 
 runApp :: IO ()
 runApp = do 
@@ -85,7 +86,7 @@ startWallet = do
             -- continue below
 
             liftIO $ listAccounts accounts
-            liftIO $ putStrLn "1. List accounts with detail\n2. Select Account \n3. Add Account\n4. Authenticate \n9. Exit App"
+            liftIO $ putStrLn "1. List accounts with detail\n2. Enter Account Mode \n3. Add Account\n4. Authenticate \n9. Exit App"
             liftIO $ promptUser putStr "Enter choice: "
             selectedCmd <- liftIO getUpperChar
             case selectedCmd of
@@ -95,7 +96,7 @@ startWallet = do
                     liftIO $ listAccounts accounts
                     startWallet
                 '2' -> do
-                    -- Select Account
+                    -- Enter Account Mode
                     if null accounts
                         then do
                             liftIO $ warnUser putStrLn "No accounts configured yet"
@@ -114,9 +115,10 @@ startWallet = do
                                     liftIO $ print $ accounts !! selectedIdx
                                     let newWallet = Wallet accounts (Just selectedIdx) maybeAuthenticatedVk
                                     put newWallet
-                                    -- evalStateT startAccount newWallet
-
-                                    liftIO $ startAccount newWallet
+                                    newerWallet <- execStateT startAccount newWallet
+                                    put newerWallet
+                                    --test
+                                    liftIO $ print newerWallet
                                     startWallet
                 '3' -> do
                     -- Add a new account
@@ -151,7 +153,7 @@ startWallet = do
                                             startWallet
                                         else do
                                             -- get VKeys of additional signers, in addition to the authenticated one
-                                            liftIO $ promptUser putStr "  Enter VKeys of other signers: "
+                                            liftIO $ promptUser putStrLn "  Enter VKeys of other signers: "
                                             let existingSigners = [fromJust maybeAuthenticatedVk]
                                             allSigners <- liftIO $ addSigner existingSigners (numPotentialSigners - 1)
 
@@ -257,74 +259,76 @@ listMenuOptions (a : as) = do
     putStrLn $ snd a
     listMenuOptions as
 
--- startAccount :: (MonadIO m, MonadState Wallet m) => m ()
-startAccount :: Wallet -> IO ()
-startAccount w = do
+startAccount :: (MonadIO m, MonadState Wallet m) => m ()
+startAccount = do
+    w <- get
     let maybeAccountIndex = ah_activeAccountIndex w
     case maybeAccountIndex of
         Nothing -> do
-            warnUser putStrLn "Expected active account index to be set"
+            liftIO $ warnUser putStrLn "Expected active account index to be set"
             pure ()
         Just accountIndex -> do
             let activeAccount = ah_accounts w !! accountIndex
     
-            emphasisUser putStrLn $ "ACCOUNT MODE   Account: " ++ a_accountId activeAccount ++ "  Authenticated User: " ++ fromJust (ah_authenticatedVk w)
-            listMenuOptions menuOptions
-            promptUser putStr "Enter choice: "
-            char <- getUpperChar
+            liftIO $ emphasisUser putStrLn $ "ACCOUNT MODE   Account: " ++ a_accountId activeAccount ++ "  Authenticated User: " ++ fromJust (ah_authenticatedVk w)
+            liftIO $ listMenuOptions menuOptions
+            liftIO $ promptUser putStr "Enter choice: "
+            char <- liftIO getUpperChar
             case char of
                 '1' -> do
                     -- Print Account
-                    printAccount activeAccount
-                    startAccount  w
+                    liftIO $ printAccount activeAccount
+                    startAccount
                 '2' -> do
                     -- Print All Txs
-                    print $ a_spendTxs activeAccount
-                    startAccount w
+                    liftIO $ print $ a_spendTxs activeAccount
+                    startAccount
                 '3' -> do
                     -- Print Pending Txs
-                    warnUser print "Not yet implemented"
-                    startAccount w
+                    liftIO $ warnUser print "Not yet implemented"
+                    startAccount
                 '4' -> do
-                    -- Create Spend Tx
-                    promptUser putStrLn "Input Spend Request parameters:"
-                    promptUser putStr "  Recipient's public key: "
-                    vk <- getLine
+                    -- Create Spend Request
+                    liftIO $ promptUser putStrLn "Input Spend Request parameters:"
+                    liftIO $ promptUser putStr "  Recipient's public key: "
+                    vk <- liftIO getLine
                     if vk `notElem` _TEST_Vks_
                         then do
-                            warnUser putStrLn "Unknown public key"
-                            startAccount w
+                            liftIO $ warnUser putStrLn "Unknown public key"
+                            startAccount
                         else do
-                            promptUser putStr "  Amount as a whole positive number: "
-                            amt <- getLine
-                            let amtInt = decimalStringToInt amt
-
-                            let eUpdatedAccount = addSpendRequestTx vk amtInt activeAccount
-                            putStrLn "before:"
-                            print activeAccount
+                            liftIO $ promptUser putStr "  Amount as a whole positive number: "
+                            amtString <- liftIO getLine
+                            let amtInt = decimalStringToInt amtString
+                            now <- liftIO getCurrentTime 
+                            let eUpdatedAccount = addSpendRequestTx vk amtInt activeAccount now
+                            liftIO $ putStrLn "before: "
+                            liftIO $ print activeAccount
                             case eUpdatedAccount of
-                                Left ex -> print ex
+                                Left ex -> do
+                                    liftIO $ print ex
+                                    startAccount
                                 Right a -> do
-                                    putStrLn "after:"
-                                    print a
+                                    liftIO $ putStrLn "after: "
+                                    liftIO $ print a
+
                                     -- replace the updated account in list of accounts
                                     let oldAccounts = ah_accounts w
                                     -- TODO move this into Lib
                                     let newAccounts = map (\aa -> if a_accountId a == a_accountId aa then a else aa) oldAccounts
+                                    let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w)
 
-                                    let newWallet = Wallet (ah_accounts w) (ah_activeAccountIndex w) (ah_authenticatedVk w)
-                                    -- TBD put newWallet
-                                    
-
-                                    
-                                    startAccount newWallet
+                                    put newWallet
+                                    startAccount
                 '5' -> do
                     -- Endorse Pending Spend Tx
-                    warnUser print "Not yet implemented"
-                    startAccount w
+                    liftIO $ warnUser print "Not yet implemented"
+                    startAccount
                 '9' ->
                     -- Exit account. Return to wallet
                     pure ()
-                _ -> warnUser print "Unexpected entry!" >>
-                    startAccount w
+                _ -> do
+                    liftIO $ warnUser print "Unexpected entry!"
+                    startAccount
             pure () -- return to caller, e.g. wallet mode
+            -- TODO verify updated wallet gets returned to caller
