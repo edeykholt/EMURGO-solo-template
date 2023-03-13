@@ -14,18 +14,19 @@ import Data.Time (UTCTime)
 -- TODO not yet implemented
 --- addOrUpdateSpendTx a _ = testSpendRequestTx _TEST_ALICE_VK_ 10 a
 
-addSpendRequestTx :: Vk -> Int -> Account -> UTCTime -> Either RequestException Account
-addSpendRequestTx vk amt (Account id signers bal threshhold spendRequests) utcTime = 
-    -- TODO verify vk
-    -- TODO verify amt
+addSpendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
+addSpendRequestTx requestor recipient amt (Account id signers bal threshhold spendRequests) utcTime = 
+    -- TODO verify requestor and recipient
+    -- TODO verify amt > 0
     Right $ Account id signers bal threshhold $ spendRequests ++ [SpendRequestTx {
         stx_base=AccountRequestTxBase {
             btx_txState=TxRequested
             , btx_txId="123412341234"
-            , btx_txCreator=vk
+            , btx_txCreator=requestor
             , btx_endorseTxs=[]
             , btx_createdDateTime=utcTime
             , btx_accountId=id}
+        , stx_recipient=recipient
         , stx_spendAmount=amt
         }]
 

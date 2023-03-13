@@ -58,9 +58,10 @@ _TEST_ARTxBase_ = AccountRequestTxBase "accountId1" "txId" _TEST_ALICE_VK_ _TEST
 -- Request to spend
 data SpendRequestTx = SpendRequestTx {
     stx_base             :: AccountRequestTxBase
+    , stx_recipient      :: Vk
     , stx_spendAmount    :: Int
 } deriving Show
-_TEST_SpendRequestTx_ = SpendRequestTx _TEST_ARTxBase_ 10
+_TEST_SpendRequestTx_ = SpendRequestTx _TEST_ARTxBase_ _TEST_BOB_VK_ 10
 
 data Account = Account {
     a_accountId :: String

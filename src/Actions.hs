@@ -24,6 +24,7 @@ import Control.Monad.State ( MonadState (get, put), evalStateT, liftIO, execStat
 import System.Console.ANSI
 import Text.XML.HXT.DOM.Util (decimalStringToInt)
 import Control.Monad.ST
+import Data.Either (fromRight)
 
 runApp :: IO ()
 runApp = do 
@@ -161,7 +162,7 @@ startWallet = do
                                             let newAccount = Account accountName allSigners thresholdNum 100 []
 
                                             -- In the current design, no approval is needed to create the account. There's a known risk to usage is if it is created with bad Vks.
-                                            currentTime <- liftIO getCurrentTime
+                                            -- currentTime <- liftIO getCurrentTime
                                             -- let newAccountBaseTx = AccountRequestTxBase (a_accountId newAccount) "txId" (fromJust maybeAuthenticatedVk) currentTime TxApproved []
                                             
                                             -- Update the wallet with the new Account
@@ -268,9 +269,10 @@ startAccount = do
             liftIO $ warnUser putStrLn "Expected active account index to be set"
             pure ()
         Just accountIndex -> do
+            -- TODO verify active user is set
             let activeAccount = ah_accounts w !! accountIndex
     
-            liftIO $ emphasisUser putStrLn $ "ACCOUNT MODE   Account: " ++ a_accountId activeAccount ++ "  Authenticated User: " ++ fromJust (ah_authenticatedVk w)
+            liftIO $ emphasisUser putStrLn $ "ACCOUNT MODE   Account: " ++ a_accountId activeAccount ++ "  User: " ++ fromJust (ah_authenticatedVk w)
             liftIO $ listMenuOptions menuOptions
             liftIO $ promptUser putStr "Enter choice: "
             char <- liftIO getUpperChar
@@ -291,8 +293,8 @@ startAccount = do
                     -- Create Spend Request
                     liftIO $ promptUser putStrLn "Input Spend Request parameters:"
                     liftIO $ promptUser putStr "  Recipient's public key: "
-                    vk <- liftIO getLine
-                    if vk `notElem` _TEST_Vks_
+                    recipientVk <- liftIO getLine
+                    if recipientVk `notElem` _TEST_Vks_
                         then do
                             liftIO $ warnUser putStrLn "Unknown public key"
                             startAccount
@@ -300,8 +302,9 @@ startAccount = do
                             liftIO $ promptUser putStr "  Amount as a whole positive number: "
                             amtString <- liftIO getLine
                             let amtInt = decimalStringToInt amtString
-                            now <- liftIO getCurrentTime 
-                            let eUpdatedAccount = addSpendRequestTx vk amtInt activeAccount now
+                            utcNow <- liftIO getCurrentTime 
+                            let requestorVk = fromJust $ ah_authenticatedVk w
+                            let eUpdatedAccount = addSpendRequestTx requestorVk recipientVk amtInt activeAccount utcNow
                             liftIO $ putStrLn "before: "
                             liftIO $ print activeAccount
                             case eUpdatedAccount of
