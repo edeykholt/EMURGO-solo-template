@@ -5,6 +5,7 @@ import Data.List (intercalate, elemIndex, transpose)
 -- import Control.Monad
 -- import Control.Monad.State
 import Data.Char (toUpper)
+import Data.Time (UTCTime)
 
 -- mkWallet :: [Account] -> State Wallet ()
 -- mkWallet as = put $ Wallet as Nothing Nothing -- no active account and not authenticated
@@ -13,8 +14,8 @@ import Data.Char (toUpper)
 -- TODO not yet implemented
 --- addOrUpdateSpendTx a _ = testSpendRequestTx _TEST_ALICE_VK_ 10 a
 
-addSpendRequestTx :: Vk -> Int -> Account -> Either RequestException Account
-addSpendRequestTx vk amt (Account id signers bal threshhold spendRequests) = 
+addSpendRequestTx :: Vk -> Int -> Account -> UTCTime -> Either RequestException Account
+addSpendRequestTx vk amt (Account id signers bal threshhold spendRequests) utcTime = 
     -- TODO verify vk
     -- TODO verify amt
     Right $ Account id signers bal threshhold $ spendRequests ++ [SpendRequestTx {
@@ -23,8 +24,8 @@ addSpendRequestTx vk amt (Account id signers bal threshhold spendRequests) =
             , btx_txId="123412341234"
             , btx_txCreator=vk
             , btx_endorseTxs=[]
-            , btx_createdDateTime=_TEST_UTCTime_
-            , btx_accountId="TESTACCOUNT"}
+            , btx_createdDateTime=utcTime
+            , btx_accountId=id}
         , stx_spendAmount=amt
         }]
 
