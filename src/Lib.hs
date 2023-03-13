@@ -51,3 +51,14 @@ verifyAccountUpdate = undefined
 -- vote on various transaction types
 endorseSpendTx :: SpendRequestTx -> AccountTxVoteTx -> Either RequestException SpendRequestTx
 endorseSpendTx = undefined
+
+replaceAccount :: Wallet -> Account -> Either WalletException Wallet
+replaceAccount w ra =
+    let 
+        oldAccounts2 = ah_accounts w
+        oldAccounts = ah_accounts w
+        newAccounts = map (\account -> if a_accountId ra == a_accountId account then ra else account) oldAccounts
+    in
+    -- TODO implement verification replacement worked. For now, assuming it did
+    let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w) in
+        Right newWallet

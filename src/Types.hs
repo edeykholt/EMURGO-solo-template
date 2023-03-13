@@ -29,7 +29,7 @@ _TEST_Sks_ = [_TEST_ALICE_SK_ , _TEST_BOB_SK_ , _TEST_CAROL_SK_ , _TEST_DAN_SK_ 
 data TxState = TxRequested | TxPending | TxApproved | TxRejected | TxExpired | TxApprovedNsf | TxOtherError
     deriving Show
 
-data WalletException = WalletException1 | WalletException2
+data WalletException = WalletUpdateException | WalletException2
     deriving Show
 
 data AccountException = AccountException1 | AccountException2

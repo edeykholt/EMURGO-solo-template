@@ -314,15 +314,14 @@ startAccount = do
                                 Right a -> do
                                     liftIO $ putStrLn "after: "
                                     liftIO $ print a
-
-                                    -- replace the updated account in list of accounts
-                                    let oldAccounts = ah_accounts w
-                                    -- TODO move this into Lib
-                                    let newAccounts = map (\aa -> if a_accountId a == a_accountId aa then a else aa) oldAccounts
-                                    let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w)
-
-                                    put newWallet
-                                    startAccount
+                                    let newWallet = replaceAccount w a
+                                    case newWallet of
+                                        Right nw -> do
+                                            put nw
+                                            startAccount
+                                        Left _ -> do
+                                            liftIO $ warnUser putStrLn "Could not replace account in wallet"
+                                            startAccount
                 '5' -> do
                     -- Endorse Pending Spend Tx
                     liftIO $ warnUser print "Not yet implemented"
