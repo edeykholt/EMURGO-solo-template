@@ -83,8 +83,8 @@ data AccountTxVoteTx = AccountTxVoteTx {
     atxv_accountId     :: String
     ,atxv_txId         :: String
     ,atxv_approverVk   :: Vk
-    ,atxv_dateTime      :: String
-    ,atxv_isApproved   :: Bool
+    ,atxv_dateTime      :: String  -- TODO tighten
+    ,atxv_isApproved   :: Bool  -- TODO currently unused. Depricate or use
 } deriving Show
 _TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02" True
 

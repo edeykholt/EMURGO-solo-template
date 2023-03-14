@@ -57,12 +57,38 @@ replaceAccount w ra =
     let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w) in
         Right newWallet
 
-prettyShowAccount :: Account -> String
-prettyShowAccount a =
+-- prettyAccounts :: [Account] -> String
+
+prettyAccount :: Account -> String
+prettyAccount a =
     unlines [
         "Account Id: " ++ a_accountId a
         , "Signers: " ++ intercalate ", " (a_signers a)
-        , "Threshold: " ++ show (  a_requiredSigs a )
+        , "Required Endorsers: " ++ show (  a_requiredSigs a )
         , "Balance: " ++ show (a_balance a )
-        , "Spend Requests: " ++ show (length $ a_spendTxs a)
-    ] 
+        , "Spend Requests... \n" ++ prettyRequests (a_spendTxs a)
+    ]
+
+prettyRequests :: [SpendRequestTx] -> String
+prettyRequests [] = "(no Spend Requests)"
+prettyRequests requests =
+    intercalate "\n" $ map prettyRequest requests
+    where
+        prettyRequest :: SpendRequestTx -> String
+        prettyRequest request = unlines [
+            "Request to send:"
+            , "Recipient: " ++ show (stx_recipient request)
+            , "Amount: " ++ show (stx_spendAmount request)
+            , "Requester: " ++ btx_txCreator base
+            , "Requested at: " ++ show (btx_createdDateTime base)
+            , "Workflow State: " ++ show (btx_txState base)
+            , "Additional Endorsers: " ++ prettyEndorsers (btx_endorseTxs base)
+            ]
+            where base = stx_base request
+
+prettyEndorsers :: [AccountTxVoteTx] -> String
+prettyEndorsers [] = "(none)"
+prettyEndorsers es = intercalate ", " $ map prettyEndorser es
+
+prettyEndorser :: AccountTxVoteTx -> String
+prettyEndorser pe = show (atxv_approverVk pe)

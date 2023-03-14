@@ -87,14 +87,14 @@ startWallet = do
             -- continue below
 
             liftIO $ listAccounts accounts
+            liftIO $ putStrLn "Commands..."
             liftIO $ putStrLn "1. List accounts with detail\n2. Enter Account Mode \n3. Add Account\n4. Authenticate \n9. Exit App"
             liftIO $ promptUser putStr "Enter choice: "
             selectedCmd <- liftIO getUpperChar
             case selectedCmd of
                 '1' -> do
                     -- List Accounts
-                    -- TODO update to detailed list
-                    liftIO $ listAccounts accounts
+                    liftIO $ putStrLn $ unlines $ map prettyAccount accounts
                     startWallet
                 '2' -> do
                     -- Enter Account Mode
@@ -240,8 +240,7 @@ listAccount (i,a) = do
 
 printAccount :: Account -> IO ()
 printAccount a = do
-    -- TODO make this prettier, with labels2
-    putStrLn $ show a
+    putStrLn $ prettyAccount a
 
 menuOptions :: [(Int, String)]
 menuOptions = [(1, "Print Account")
@@ -279,11 +278,11 @@ startAccount = do
             case char of
                 '1' -> do
                     -- Print Account
-                    liftIO $ putStrLn $ prettyShowAccount activeAccount
+                    liftIO $ putStrLn $ prettyAccount activeAccount
                     startAccount
                 '2' -> do
                     -- Print All Txs
-                    liftIO $ print $ a_spendTxs activeAccount
+                    liftIO $ putStrLn $ prettyRequests (a_spendTxs activeAccount)
                     startAccount
                 '3' -> do
                     -- Print Pending Txs
@@ -314,7 +313,7 @@ startAccount = do
                                 Right a -> do
                                     liftIO $ putStrLn "after: "
                                     liftIO $ print a
-                                    liftIO $ putStrLn $ prettyShowAccount a
+                                    liftIO $ putStrLn $ prettyAccount a
                                     let newWallet = replaceAccount w a
                                     case newWallet of
                                         Right nw -> do
