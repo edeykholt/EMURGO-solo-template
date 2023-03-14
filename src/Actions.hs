@@ -266,71 +266,100 @@ startAccount = do
     case maybeAccountIndex of
         Nothing -> do
             liftIO $ warnUser putStrLn "Expected active account index to be set"
-            pure ()
         Just accountIndex -> do
-            -- TODO verify active user is set
-            let activeAccount = ah_accounts w !! accountIndex
-    
-            liftIO $ emphasisUser putStrLn $ "ACCOUNT MODE   Account: " ++ a_accountId activeAccount ++ "  User: " ++ fromJust (ah_authenticatedVk w)
-            liftIO $ listMenuOptions menuOptions
-            liftIO $ promptUser putStr "Enter choice: "
-            char <- liftIO getUpperChar
-            case char of
-                '1' -> do
-                    -- Print Account
-                    liftIO $ putStrLn $ prettyAccount activeAccount
-                    startAccount
-                '2' -> do
-                    -- Print All Txs
-                    liftIO $ putStrLn $ prettyRequests (a_spendTxs activeAccount)
-                    startAccount
-                '3' -> do
-                    -- Print Pending Txs
-                    liftIO $ warnUser print "Not yet implemented"
-                    startAccount
-                '4' -> do
-                    -- Create Spend Request
-                    liftIO $ promptUser putStrLn "Input Spend Request parameters:"
-                    liftIO $ promptUser putStr "  Recipient's public key: "
-                    recipientVk <- liftIO getLine
-                    if recipientVk `notElem` _TEST_Vks_
-                        then do
-                            liftIO $ warnUser putStrLn "Unknown public key"
+            let maybeAuthenticatedVk = ah_authenticatedVk w
+            case maybeAuthenticatedVk of
+                Nothing ->
+                    liftIO $ warnUser putStrLn "no user authenticated"
+                Just authenticatedUser -> do
+                    let activeAccount = ah_accounts w !! accountIndex
+                    liftIO $ emphasisUser putStrLn $ "ACCOUNT MODE   Account: " ++ a_accountId activeAccount ++ "  User: " ++ fromJust (ah_authenticatedVk w)
+                    liftIO $ listMenuOptions menuOptions
+                    liftIO $ promptUser putStr "Enter choice: "
+                    char <- liftIO getUpperChar
+                    case char of
+                        '1' -> do
+                            -- Print Account
+                            liftIO $ putStrLn $ prettyAccount activeAccount
                             startAccount
-                        else do
-                            liftIO $ promptUser putStr "  Amount as a whole positive number: "
-                            amtString <- liftIO getLine
-                            let amtInt = decimalStringToInt amtString
-                            utcNow <- liftIO getCurrentTime 
-                            let requestorVk = fromJust $ ah_authenticatedVk w
-                            let eUpdatedAccount = addSpendRequestTx requestorVk recipientVk amtInt activeAccount utcNow
-                            liftIO $ putStrLn "before: "
-                            liftIO $ print activeAccount
-                            case eUpdatedAccount of
-                                Left ex -> do
-                                    liftIO $ print ex
+                        '2' -> do
+                            -- Print All Txs
+                            liftIO $ putStrLn $ prettyRequests (a_spendTxs activeAccount)
+                            startAccount
+                        '3' -> do
+                            -- Print Pending Txs
+                            liftIO $ warnUser print "Not yet implemented"
+                            startAccount
+                        '4' -> do
+                            -- Create Spend Request
+                            liftIO $ promptUser putStrLn "Input Spend Request parameters:"
+                            liftIO $ promptUser putStr "  Recipient's public key: "
+                            recipientVk <- liftIO getLine
+                            if recipientVk `notElem` _TEST_Vks_
+                                then do
+                                    liftIO $ warnUser putStrLn "Unknown public key"
                                     startAccount
-                                Right a -> do
-                                    liftIO $ putStrLn "after: "
-                                    liftIO $ print a
-                                    liftIO $ putStrLn $ prettyAccount a
-                                    let newWallet = replaceAccount w a
+                                else do
+                                    liftIO $ promptUser putStr "  Amount as a whole positive number: "
+                                    amtString <- liftIO getLine
+                                    let amtInt = decimalStringToInt amtString
+                                    utcNow <- liftIO getCurrentTime 
+                                    let requestorVk = fromJust $ ah_authenticatedVk w
+                                    let eUpdatedAccount = addSpendRequestTx requestorVk recipientVk amtInt activeAccount utcNow
+                                    liftIO $ putStrLn "before: "
+                                    liftIO $ print activeAccount
+                                    case eUpdatedAccount of
+                                        Left ex -> do
+                                            liftIO $ print ex
+                                            startAccount
+                                        Right a -> do
+                                            liftIO $ putStrLn "after: "
+                                            liftIO $ print a
+                                            liftIO $ putStrLn $ prettyAccount a
+                                            let newWallet = replaceAccount w a
+                                            case newWallet of
+                                                Right nw -> do
+                                                    put nw
+                                                    startAccount
+                                                Left _ -> do
+                                                    liftIO $ warnUser putStrLn "Could not replace account in wallet"
+                                                    startAccount
+                        '5' -> do
+                            -- Endorse Pending Spend Tx
+                            liftIO $ promptUser putStr "Request#: "
+                            idxString <- liftIO getLine
+                            let idx = decimalStringToInt idxString
+                            -- TODO verify input is in range
+                            let selectedRequests = a_spendTxs activeAccount
+                            let selectedRequest = selectedRequests !! idx
+                            utcNow <- liftIO getCurrentTime 
+                            let endorsement = AccountTxVoteTx {
+                                atxv_txId="ignored"
+                                , atxv_isApproved=True
+                                , atxv_dateTime = show utcNow  -- TODO strengthen type
+                                , atxv_approverVk= authenticatedUser
+                                , atxv_accountId= a_accountId activeAccount
+                            }
+                            let  updatedAccount = applyEndorsement activeAccount selectedRequest endorsement
+                            case updatedAccount of
+                                Left ex -> do
+                                    -- TODO print the ex
+                                    liftIO $ warnUser putStrLn "Could not apply endorsement"
+                                    startAccount
+                                Right acct -> do
+                                    let newWallet = replaceAccount w acct
                                     case newWallet of
+                                        Left ex -> do
+                                            -- TODO print the ex
+                                            liftIO $ warnUser putStrLn "Could not replace account in wallet"
+                                            startAccount
                                         Right nw -> do
                                             put nw
                                             startAccount
-                                        Left _ -> do
-                                            liftIO $ warnUser putStrLn "Could not replace account in wallet"
-                                            startAccount
-                '5' -> do
-                    -- Endorse Pending Spend Tx
-                    liftIO $ warnUser print "Not yet implemented"
-                    startAccount
-                '9' ->
-                    -- Exit account. Return to wallet
-                    pure ()
-                _ -> do
-                    liftIO $ warnUser print "Unexpected entry!"
-                    startAccount
-            pure () -- return to caller, e.g. wallet mode
-            -- TODO verify updated wallet gets returned to caller
+                        '9' ->
+                            -- Exit account. Return to wallet
+                            pure ()
+                        _ -> do
+                            liftIO $ warnUser print "Unexpected entry!"
+                            startAccount
+                    pure () -- return to caller, e.g. wallet mode

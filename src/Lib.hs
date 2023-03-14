@@ -7,6 +7,8 @@ import Data.List (intercalate, elemIndex, transpose)
 import Data.Char (toUpper, intToDigit)
 import Data.Time (UTCTime)
 import Text.XML.HXT.Core (a_name, intToHexString)
+import Data.Either (fromRight)
+
 
 addSpendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
 addSpendRequestTx requestor recipient amt (Account id signers bal threshhold spendRequests) utcTime = 
@@ -92,3 +94,34 @@ prettyEndorsers es = intercalate ", " $ map prettyEndorser es
 
 prettyEndorser :: AccountTxVoteTx -> String
 prettyEndorser pe = show (atxv_approverVk pe)
+
+applyEndorsement :: Account -> SpendRequestTx -> AccountTxVoteTx -> Either RequestException Account
+applyEndorsement a s e = 
+    Right Account {
+        a_spendTxs = newSpendTxs
+        , a_signers= a_signers a
+        , a_requiredSigs = a_requiredSigs a
+        , a_balance= newBalance
+        , a_accountId= a_accountId a
+        }
+        where
+            -- TODO find existing SpendRequestTx within the account and repalce it
+            -- TODO TOTAL hack for now is to append it
+            oldSelectedSpendTx = a_spendTxs a !! 0 -- TODO find specific SpendRequestTx in list, and do surgury on it
+            ret = applyEndorsementToSpendTx oldSelectedSpendTx (a_balance a) e 
+            -- TODO issue with newBalance!
+            newBalance = 0
+            newSpendTxs = case ret of
+                Right (x, y) -> 
+                    -- newBalance = y
+                    a_spendTxs a ++ [x]
+                Left _ -> 
+                    -- newBalance = 1
+                    a_spendTxs a
+
+-- For the supplied SpendRequest and account balance, apply the endorsement, compute new request state and account balance
+applyEndorsementToSpendTx :: SpendRequestTx -> Int -> AccountTxVoteTx -> Either RequestException (SpendRequestTx, Int)
+applyEndorsementToSpendTx spendRequest oldAccountBalance endorsement = 
+    -- TODO implement real stuff
+    -- Either RequestException (SpendRequestTx, Int)
+    Right (spendRequest, oldAccountBalance)
