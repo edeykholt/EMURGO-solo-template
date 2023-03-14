@@ -53,7 +53,7 @@ data AccountRequestTxBase = AccountRequestTxBase {
     , btx_txState             :: TxState
     , btx_endorseTxs          :: [] AccountTxVoteTx
 } deriving Show
-_TEST_ARTxBase_ = AccountRequestTxBase "accountId1" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxRequested []
+_TEST_ARTxBase_ = AccountRequestTxBase "Test Account" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxRequested []
 
 -- Request to spend
 data SpendRequestTx = SpendRequestTx {
@@ -70,7 +70,7 @@ data Account = Account {
     , a_balance :: Int
     , a_spendTxs :: [] SpendRequestTx
 } deriving Show
-_TEST_ACCOUNT_ = Account "Test Account" [_TEST_ALICE_VK_, _TEST_BOB_VK_ ] 2 100 []
+_TEST_ACCOUNT_ = Account "Test Account" [_TEST_ALICE_VK_, _TEST_BOB_VK_, _TEST_CAROL_VK_ ] 2 100 [_TEST_SpendRequestTx_]
 
 data Wallet = Wallet {
    ah_accounts              :: [] Account
