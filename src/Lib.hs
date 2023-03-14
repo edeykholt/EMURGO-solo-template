@@ -4,15 +4,9 @@ import Types
 import Data.List (intercalate, elemIndex, transpose)
 -- import Control.Monad
 -- import Control.Monad.State
-import Data.Char (toUpper)
+import Data.Char (toUpper, intToDigit)
 import Data.Time (UTCTime)
-
--- mkWallet :: [Account] -> State Wallet ()
--- mkWallet as = put $ Wallet as Nothing Nothing -- no active account and not authenticated
-
--- addOrUpdateSpendTx :: Account -> SpendRequestTx -> Either RequestException Account
--- TODO not yet implemented
---- addOrUpdateSpendTx a _ = testSpendRequestTx _TEST_ALICE_VK_ 10 a
+import Text.XML.HXT.Core (a_name, intToHexString)
 
 addSpendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
 addSpendRequestTx requestor recipient amt (Account id signers bal threshhold spendRequests) utcTime = 
@@ -30,7 +24,7 @@ addSpendRequestTx requestor recipient amt (Account id signers bal threshhold spe
         , stx_spendAmount=amt
         }]
 
--- functions to help UI listings
+-- functions to help UI listings.  Txs awaiting your endorsement
 getPendingTxsForVk :: ()
 getPendingTxsForVk = undefined
 
@@ -62,3 +56,13 @@ replaceAccount w ra =
     -- TODO implement verification replacement worked. For now, assuming it did
     let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w) in
         Right newWallet
+
+prettyShowAccount :: Account -> String
+prettyShowAccount a =
+    unlines [
+        "Account Id: " ++ a_accountId a
+        , "Signers: " ++ intercalate ", " (a_signers a)
+        , "Threshold: " ++ show (  a_requiredSigs a )
+        , "Balance: " ++ show (a_balance a )
+        , "Spend Requests: " ++ show (length $ a_spendTxs a)
+    ] 

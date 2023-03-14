@@ -279,7 +279,7 @@ startAccount = do
             case char of
                 '1' -> do
                     -- Print Account
-                    liftIO $ printAccount activeAccount
+                    liftIO $ putStrLn $ prettyShowAccount activeAccount
                     startAccount
                 '2' -> do
                     -- Print All Txs
@@ -314,6 +314,7 @@ startAccount = do
                                 Right a -> do
                                     liftIO $ putStrLn "after: "
                                     liftIO $ print a
+                                    liftIO $ putStrLn $ prettyShowAccount a
                                     let newWallet = replaceAccount w a
                                     case newWallet of
                                         Right nw -> do
