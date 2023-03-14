@@ -72,11 +72,11 @@ prettyAccount a =
 prettyRequests :: [SpendRequestTx] -> String
 prettyRequests [] = "(no Spend Requests)"
 prettyRequests requests =
-    intercalate "\n" $ map prettyRequest requests
+    intercalate "\n" $ map prettyRequest $ zip [1..] requests
     where
-        prettyRequest :: SpendRequestTx -> String
-        prettyRequest request = unlines [
-            "Request to send:"
+        prettyRequest :: (Int, SpendRequestTx) -> String
+        prettyRequest (i, request) = unlines [
+            "Request #" ++ [intToDigit i]
             , "Recipient: " ++ show (stx_recipient request)
             , "Amount: " ++ show (stx_spendAmount request)
             , "Requester: " ++ btx_txCreator base
