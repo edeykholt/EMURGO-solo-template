@@ -12,12 +12,9 @@ import Control.Monad
 import Foreign (Storable(sizeOf))
 import System.IO
 import GHC.IO.Handle.Internals (flushBuffer, flushByteReadBuffer, flushCharReadBuffer)
-import Data.IntMap (IntMap, size)
-import qualified Data.IntMap as IntMap
 import Text.ParserCombinators.ReadP (count)
 import Data.Time (getCurrentTime)
 import GHC.IO hiding (liftIO)
-import GHC.Num (integerToNatural)
 import GHC.Natural (mkNatural)
 import Control.Monad.Cont hiding (liftIO)
 import Control.Monad.State ( MonadState (get, put), evalStateT, liftIO, execStateT, StateT (StateT))
@@ -36,11 +33,9 @@ runApp = do
     if char == 'Y'
         then do
             putStrLn "Initializing with sample wallet"
-            -- startWallet _TEST_WALLET_
             evalStateT startWallet _TEST_WALLET_
         else do
-            putStrLn "Initializing with new empty wallet"
-            -- startWallet $ Wallet [] Nothing Nothing
+            putStrLn "Initializing with empty wallet"
             evalStateT startWallet $ Wallet [] Nothing Nothing
     pure ()
 
@@ -62,8 +57,8 @@ emphasisUser f s = do
     f s
     setSGR [Reset]
 
-getUpperChar :: IO Char
 -- get first character of an input line
+getUpperChar :: IO Char
 getUpperChar = do
     x <- getLine
     case x of 
@@ -113,12 +108,12 @@ startWallet = do
                                     liftIO $ warnUser putStrLn "Number out of range."
                                     startWallet
                                 else do
-                                    liftIO $ print $ accounts !! selectedIdx
+                                    liftIO $ putStrLn . prettyAccount $ accounts !! selectedIdx
                                     let newWallet = Wallet accounts (Just selectedIdx) maybeAuthenticatedVk
                                     put newWallet
                                     newerWallet <- execStateT startAccount newWallet
                                     put newerWallet
-                                    --test
+                                    -- TODO EE! better print of wallet, or delete
                                     liftIO $ print newerWallet
                                     startWallet
                 '3' -> do
@@ -132,10 +127,10 @@ startWallet = do
                         else do
                             liftIO $ promptUser putStrLn "Enter new Account information..."
                             
-                            liftIO $ promptUser putStr "  Account Name: "
+                            liftIO $ promptUser putStr "Account Name: "
                             accountName <- liftIO getLine
                             
-                            liftIO $ promptUser putStr "  Number of required signers: "
+                            liftIO $ promptUser putStr "Number of required signers: "
                             x <- liftIO getUpperChar
                             let thresholdNum = digitToInt x
                             let isInvalidThreshold = thresholdNum < 2 || thresholdNum > 9
@@ -144,7 +139,7 @@ startWallet = do
                                     liftIO $ warnUser putStrLn "Invalid number of required signers"
                                     startWallet
                                 else do
-                                    liftIO $ promptUser putStr "  Number of potential signers (including you): "
+                                    liftIO $ promptUser putStr "Number of potential signers (including you): "
                                     y <- liftIO getUpperChar
                                     let numPotentialSigners = digitToInt y
                                     let isInvalidPotential = numPotentialSigners < thresholdNum || numPotentialSigners > 9
@@ -162,16 +157,12 @@ startWallet = do
                                             let newAccount = Account accountName allSigners thresholdNum 100 []
 
                                             -- In the current design, no approval is needed to create the account. There's a known risk to usage is if it is created with bad Vks.
-                                            -- currentTime <- liftIO getCurrentTime
-                                            -- let newAccountBaseTx = AccountRequestTxBase (a_accountId newAccount) "txId" (fromJust maybeAuthenticatedVk) currentTime TxApproved []
                                             
                                             -- Update the wallet with the new Account
                                             let newAccounts = accounts ++ [newAccount]
                                             let newIndex = length newAccounts - 1
                                             let newWallet = Wallet newAccounts (Just newIndex) maybeAuthenticatedVk
                                             put newWallet
-
-                                            -- print newWallet
                                             liftIO $ putStrLn "Added new account to wallet"
 
                                             startWallet
@@ -191,6 +182,7 @@ startWallet = do
                     liftIO $ warnUser putStrLn "Unexpected choice"
                     startWallet
 
+-- authenticatePk is a currently weak way to validate a user is authentic. Intent is to replace this with cryptographic signing and validation later.
 authenticatePk :: Wallet -> IO Wallet
 authenticatePk w = do
     promptUser putStr "To authenticate, enter your public key: "
@@ -211,6 +203,7 @@ addSigner vks 0 = pure vks
 addSigner vks numAddlSigners = do
     promptUser putStr "Public Key of additional signer: "
     vk <- getLine
+    -- For now, we are validating users by seeing if they are in the test list. For future, we'd verify the syntax of provided public key, address, etc.
     if vk `notElem` _TEST_Vks_
         then do
             warnUser putStrLn "Public key is not in known list. Try again."
@@ -230,11 +223,12 @@ listAccounts accounts = do
             putStrLn "  (none)"
         else do
             let zah_accounts = zip [0,1..] accounts
-            -- TODO number them and pretty print
+            -- TODO EE! number them and pretty print
             forM_ zah_accounts listAccount
 
 listAccount :: (Int, Account) -> IO ()
 listAccount (i,a) = do
+    -- TODO EE! confirm this works as desired
     putStr "#" >> putStr [intToDigit i] >> putStr " "
     putStrLn $ a_accountId a
 
@@ -244,10 +238,10 @@ printAccount a = do
 
 menuOptions :: [(Int, String)]
 menuOptions = [(1, "Print Account")
-                , (2, "Print All Txs")
-                , (3, "Print Pending Txs")
-                , (4, "Create Spend Request")
-                , (5, "Endorse Pending Spend Request")
+                , (2, "Print All Send Requests")
+                , (3, "Print Pending Send Requests")
+                , (4, "Create Send Request")
+                , (5, "Endorse Pending Send Request")
                 , (9, "Return to Wallet")
                 ]
 
@@ -283,11 +277,11 @@ startAccount = do
                             liftIO $ putStrLn $ prettyAccount activeAccount
                             startAccount
                         '2' -> do
-                            -- Print All Txs
+                            -- Print All Send Requests
                             liftIO $ putStrLn $ prettyRequests (a_spendTxs activeAccount)
                             startAccount
                         '3' -> do
-                            -- Print Pending Txs
+                            -- Print Pending Send Requests
                             liftIO $ warnUser print "Not yet implemented"
                             startAccount
                         '4' -> do
@@ -325,7 +319,7 @@ startAccount = do
                                                     liftIO $ warnUser putStrLn "Could not replace account in wallet"
                                                     startAccount
                         '5' -> do
-                            -- Endorse Pending Spend Tx
+                            -- Endorse Pending Send Request
                             liftIO $ promptUser putStr "Request#: "
                             idxString <- liftIO getLine
                             let idx = decimalStringToInt idxString
@@ -355,6 +349,7 @@ startAccount = do
                                             startAccount
                                         Right nw -> do
                                             put nw
+                                            -- TODO EE! sumarize new state, e.g. "Endorsed. Updated Send Transaction"
                                             startAccount
                         '9' ->
                             -- Exit account. Return to wallet

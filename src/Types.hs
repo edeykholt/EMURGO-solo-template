@@ -1,13 +1,11 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 module Types where
-    
 import GHC.Natural (Natural)
 import Data.Fixed 
 import Data.Time
 import Text.Show.Functions
 import Data.Time.Format.ISO8601 (yearFormat)
-
 
 -- verification key, or public key
 type Vk = String
@@ -55,7 +53,7 @@ data AccountRequestTxBase = AccountRequestTxBase {
 } deriving Show
 _TEST_ARTxBase_ = AccountRequestTxBase "Test Account" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxRequested []
 
--- Request to spend
+-- Request to send value
 data SpendRequestTx = SpendRequestTx {
     stx_base             :: AccountRequestTxBase
     , stx_recipient      :: Vk
@@ -84,12 +82,9 @@ data AccountTxVoteTx = AccountTxVoteTx {
     ,atxv_txId         :: String
     ,atxv_approverVk   :: Vk
     ,atxv_dateTime      :: String  -- TODO tighten
-    ,atxv_isApproved   :: Bool  -- TODO currently unused. Depricate or use
+    ,atxv_isApproved   :: Bool  -- TODO EE! currently unused. Depricate or use
 } deriving Show
 _TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02" True
 
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx
     deriving Show
-
--- Transaction time to live before expired, in seconds
-_TxTTL_ = 600 

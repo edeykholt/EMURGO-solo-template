@@ -2,13 +2,10 @@ module Lib where
 
 import Types
 import Data.List (intercalate, elemIndex, transpose)
--- import Control.Monad
--- import Control.Monad.State
 import Data.Char (toUpper, intToDigit)
 import Data.Time (UTCTime)
 import Text.XML.HXT.Core (a_name, intToHexString)
 import Data.Either (fromRight)
-
 
 addSpendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
 addSpendRequestTx requestor recipient amt (Account id signers bal threshhold spendRequests) utcTime = 
@@ -36,18 +33,6 @@ isAuthenticatedPair :: Vk -> Sk -> Bool
 -- TODO confirm these are a matching pair, not just both in the test lists. Will require some refactoring
 isAuthenticatedPair vk sk = elem vk _TEST_Vks_ && elem sk _TEST_Sks_ 
 
--- Updates to Wallet
-addOrUpdateAccount :: Wallet -> Account -> Either RequestException Wallet
-addOrUpdateAccount = undefined
-
--- make sure an account update doesn't violate certain incremental constraints
-verifyAccountUpdate :: Account -> Account -> Either RequestException Account
-verifyAccountUpdate = undefined
-
--- vote on various transaction types
-endorseSpendTx :: SpendRequestTx -> AccountTxVoteTx -> Either RequestException SpendRequestTx
-endorseSpendTx = undefined
-
 replaceAccount :: Wallet -> Account -> Either WalletException Wallet
 replaceAccount w ra =
     let 
@@ -59,15 +44,13 @@ replaceAccount w ra =
     let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w) in
         Right newWallet
 
--- prettyAccounts :: [Account] -> String
-
 prettyAccount :: Account -> String
 prettyAccount a =
     unlines [
         "Account Id: " ++ a_accountId a
         , "Signers: " ++ intercalate ", " (a_signers a)
-        , "Required Endorsers: " ++ show (  a_requiredSigs a )
-        , "Balance: " ++ show (a_balance a )
+        , "Required Endorsers: " ++ show (a_requiredSigs a)
+        , "Balance: " ++ show (a_balance a)
         , "Spend Requests... \n" ++ prettyRequests (a_spendTxs a)
     ]
 
@@ -96,7 +79,7 @@ prettyEndorser :: AccountTxVoteTx -> String
 prettyEndorser pe = show (atxv_approverVk pe)
 
 applyEndorsement :: Account -> SpendRequestTx -> AccountTxVoteTx -> Either RequestException Account
-applyEndorsement a s e = 
+applyEndorsement a sendRequest endorsement = 
     Right Account {
         a_spendTxs = newSpendTxs
         , a_signers= a_signers a
@@ -105,11 +88,11 @@ applyEndorsement a s e =
         , a_accountId= a_accountId a
         }
         where
-            -- TODO find existing SpendRequestTx within the account and repalce it
-            -- TODO TOTAL hack for now is to append it
-            oldSelectedSpendTx = a_spendTxs a !! 0 -- TODO find specific SpendRequestTx in list, and do surgury on it
-            ret = applyEndorsementToSpendTx oldSelectedSpendTx (a_balance a) e 
-            -- TODO issue with newBalance!
+            -- TODO EE! find existing SpendRequestTx within the account and repalce it with provided sendRequest
+            -- TODO EE! TOTAL hack for now is to append it
+            oldSelectedSpendTx = a_spendTxs a !! 0 -- TODO find specific SpendRequestTx in list, and do surgury on it.  Use elemIndex ?
+            ret = applyEndorsementToSpendTx oldSelectedSpendTx (a_balance a) endorsement 
+            -- TODO EE! issue with newBalance!
             newBalance = 0
             newSpendTxs = case ret of
                 Right (x, y) -> 
@@ -122,6 +105,6 @@ applyEndorsement a s e =
 -- For the supplied SpendRequest and account balance, apply the endorsement, compute new request state and account balance
 applyEndorsementToSpendTx :: SpendRequestTx -> Int -> AccountTxVoteTx -> Either RequestException (SpendRequestTx, Int)
 applyEndorsementToSpendTx spendRequest oldAccountBalance endorsement = 
-    -- TODO implement real stuff
+    -- TODO EE! implement real stuff
     -- Either RequestException (SpendRequestTx, Int)
     Right (spendRequest, oldAccountBalance)
