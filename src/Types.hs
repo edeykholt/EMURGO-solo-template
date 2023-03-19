@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 module Types where
-import GHC.Natural (Natural)
 import Data.Fixed 
 import Data.Time
 import Text.Show.Functions
@@ -77,14 +76,14 @@ data Wallet = Wallet {
    } deriving Show
 _TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] Nothing Nothing -- initial account is active, no user authenticated
 
+-- Used to endorse a SpendRequest
 data AccountTxVoteTx = AccountTxVoteTx {
     atxv_accountId     :: String
     ,atxv_txId         :: String
     ,atxv_approverVk   :: Vk
-    ,atxv_dateTime      :: String  -- TODO tighten
-    ,atxv_isApproved   :: Bool  -- TODO EE! currently unused. Depricate or use
+    ,atxv_dateTime     :: String  -- TODO tighten
 } deriving Show
-_TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02" True
+_TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02"
 
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx
     deriving Show

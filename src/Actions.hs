@@ -329,7 +329,6 @@ startAccount = do
                             utcNow <- liftIO getCurrentTime 
                             let endorsement = AccountTxVoteTx {
                                 atxv_txId="ignored"
-                                , atxv_isApproved=True
                                 , atxv_dateTime = show utcNow  -- TODO strengthen type
                                 , atxv_approverVk= authenticatedUser
                                 , atxv_accountId= a_accountId activeAccount

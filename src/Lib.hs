@@ -7,6 +7,7 @@ import Data.Time (UTCTime)
 import Text.XML.HXT.Core (a_name, intToHexString)
 import Data.Either (fromRight)
 
+-- Add a SendRequest to an account, given a requestor, recipient, amount, account, and requestedDateTime.
 addSpendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
 addSpendRequestTx requestor recipient amt (Account id signers bal threshhold spendRequests) utcTime = 
     -- TODO verify requestor and recipient
