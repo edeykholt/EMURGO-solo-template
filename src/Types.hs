@@ -85,5 +85,5 @@ data AccountTxVoteTx = AccountTxVoteTx {
 } deriving Show
 _TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02"
 
-data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx
+data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx | EndorsementTargetNotFoundEx | OtherEx
     deriving Show

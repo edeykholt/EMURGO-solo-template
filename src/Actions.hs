@@ -113,8 +113,7 @@ startWallet = do
                                     put newWallet
                                     newerWallet <- execStateT startAccount newWallet
                                     put newerWallet
-                                    -- TODO EE! better print of wallet, or delete
-                                    liftIO $ print newerWallet
+                                    liftIO $ putStrLn $ prettyWallet newerWallet
                                     startWallet
                 '3' -> do
                     -- Add a new account
@@ -222,15 +221,7 @@ listAccounts accounts = do
         then do
             putStrLn "  (none)"
         else do
-            let zah_accounts = zip [0,1..] accounts
-            -- TODO EE! number them and pretty print
-            forM_ zah_accounts listAccount
-
-listAccount :: (Int, Account) -> IO ()
-listAccount (i,a) = do
-    -- TODO EE! confirm this works as desired
-    putStr "#" >> putStr [intToDigit i] >> putStr " "
-    putStrLn $ a_accountId a
+            putStrLn $ prettyAccountsWithNum accounts
 
 printAccount :: Account -> IO ()
 printAccount a = do
@@ -333,22 +324,24 @@ startAccount = do
                                 , atxv_approverVk= authenticatedUser
                                 , atxv_accountId= a_accountId activeAccount
                             }
-                            let  updatedAccount = applyEndorsement activeAccount selectedRequest endorsement
-                            case updatedAccount of
+                            let  updatedAccountAndSR = applyEndorsement activeAccount selectedRequest endorsement
+                            case updatedAccountAndSR of
                                 Left ex -> do
                                     -- TODO print the ex
                                     liftIO $ warnUser putStrLn "Could not apply endorsement"
                                     startAccount
-                                Right acct -> do
-                                    let newWallet = replaceAccount w acct
-                                    case newWallet of
+                                Right (updatedAcct, updatedSendRequest) -> do
+                                    let eNewWallet = replaceAccount w updatedAcct
+                                    case eNewWallet of
                                         Left ex -> do
-                                            -- TODO print the ex
+                                            liftIO $ print ex
                                             liftIO $ warnUser putStrLn "Could not replace account in wallet"
                                             startAccount
-                                        Right nw -> do
-                                            put nw
-                                            -- TODO EE! sumarize new state, e.g. "Endorsed. Updated Send Transaction"
+                                        Right newWallet -> do
+                                            put newWallet
+                                            liftIO $ putStrLn "Endorsed. Updated Send Transaction: "
+                                            liftIO $ putStrLn $ prettyRequest updatedSendRequest
+                                            liftIO $ putStrLn $ "Account balance: " ++ show (a_balance updatedAcct)
                                             startAccount
                         '9' ->
                             -- Exit account. Return to wallet
