@@ -98,7 +98,7 @@ prettyEndorsers endorsers = intercalate ", " $ map prettyEndorser endorsers
 prettyEndorser :: EndorsementTx -> String
 prettyEndorser endorser = show (atxv_approverVk endorser)
 
--- Find the index of a SendRequestTx in a list, based on its dateTime. This is a admittedly weak identifier that should be improved in the future.
+-- Find the index of a SendRequestTx in a list, based on its dateTime. This is an admitedly weak identifier that should be improved in the future.
 findSendRequestIndex :: [SendRequestTx] -> SendRequestTx -> Maybe Int
 findSendRequestIndex [] _  = Nothing
 findSendRequestIndex sendRequests newSendRequest =
@@ -126,21 +126,29 @@ applyEndorsement a sendRequest endorsement =
                 TxApprovedNsf           -> Left NsfEx
                 TxPendingEndorsement    -> 
                     let
-                        -- if the count of endorsements, including this one and the creator's, is equal or greater than the required sigs, it will be approved if funds are available
+                        -- if the count of endorsements, including this one plus the creator's, is equal or greater than the required sigs, it will be approved if funds are available
                         isApprovedPendingFunds = 2 + length (btx_endorsementTxs $ stx_base sendRequest) >= a_requiredSigs a
+                        -- check if the endorser is either the same as the sendRequest's creator or is a prior endorser on this sendRequest
+                        isRepeatEndorser = atxv_approverVk endorsement == btx_txCreator (stx_base sendRequest) ||
+                            foldl (\acc e -> acc || atxv_approverVk e == atxv_approverVk endorsement ) False (btx_endorsementTxs $ stx_base sendRequest)
                     in
-                    if isApprovedPendingFunds
+                    if isRepeatEndorser
                         then
-                            -- check if adequate funds are available, and update newBalance and state
-                            if a_balance a >= stx_sendAmount sendRequest
-                                then
-                                    let newBalance = a_balance a - stx_sendAmount sendRequest in
-                                    applyEndorsement2 a sendRequest endorsement newBalance TxApproved
-                                else
-                                    applyEndorsement2 a sendRequest endorsement (a_balance a) TxApprovedNsf
-                        else
-                            applyEndorsement2 a sendRequest endorsement (a_balance a) TxPendingEndorsement
+                            Left RedundantVoteEx
+                        else if isApprovedPendingFunds
+                            then
+                                -- check if adequate funds are available, and update newBalance and state
+                                if a_balance a >= stx_sendAmount sendRequest
+                                    then
+                                        let newBalance = a_balance a - stx_sendAmount sendRequest in
+                                        applyEndorsement2 a sendRequest endorsement newBalance TxApproved
+                                    else
+                                        applyEndorsement2 a sendRequest endorsement (a_balance a) TxApprovedNsf
+                            else
+                                applyEndorsement2 a sendRequest endorsement (a_balance a) TxPendingEndorsement
 
+
+-- This helper is used by the above applyEndorsement with similar signature but also providing newBalance and newState
 applyEndorsement2 :: Account -> SendRequestTx -> EndorsementTx -> Int -> TxState -> Either RequestException (Account, SendRequestTx)
 applyEndorsement2 a newSendRequestTx endorsement newBalance newState = 
     let
