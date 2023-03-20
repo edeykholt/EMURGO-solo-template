@@ -82,5 +82,6 @@ data EndorsementTx = EndorsementTx {
 } deriving Show
 _TEST_AccountTxVoteTx_ = EndorsementTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02"
 
+-- Exceptions for SendRequestTx or EndorsementTx
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx | EndorsementTargetNotFoundEx | OtherEx
     deriving Show
