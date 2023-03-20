@@ -7,6 +7,7 @@ import Data.Time (UTCTime)
 import Text.XML.HXT.Core (a_name, intToHexString)
 import Data.Either (fromRight)
 import Control.Monad (forM_)
+import Data.Data (typeOf)
 
 -- Add a SendRequest to an account, given a requestor, recipient, amount, account, and requestedDateTime.
 addSendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
@@ -111,66 +112,81 @@ findSendRequestIndex sendRequests newSendRequest =
             else
                 fsr srs a (idx - 1)
 
--- For the supplied account, sendRequest, and Endorsement, update the account and sendRequest, and return them
+-- For the supplied account, sendRequest, and endorsement, update the account and sendRequest, and return them
 applyEndorsement :: Account -> SendRequestTx -> EndorsementTx -> Either RequestException (Account, SendRequestTx)
 applyEndorsement a sendRequest endorsement = 
     let mFoundIndex = findSendRequestIndex (a_sendTxs a) sendRequest in
     case mFoundIndex of
         Nothing -> Left EndorsementTargetNotFoundEx
         Just index -> 
+            let oldSendRequest = a_sendTxs a !! index in
             -- verify old sendRequest is still in a pending state that can accpet endorsements
-            case btx_txState $ stx_base $ a_sendTxs a !! index of
-                TxApproved    -> Left AlreadyFinalizedEx
-                TxApprovedNsf -> Left NsfEx
-                TxOtherError  -> Left RedundantVoteEx
-                _             -> 
+            case btx_txState $ stx_base oldSendRequest of
+                TxApproved              -> Left AlreadyFinalizedEx
+                TxApprovedNsf           -> Left NsfEx
+                TxPendingEndorsement    -> 
                     let
-                        eUpdatedSendRequest = applyEndorsementToSendTx sendRequest (a_balance a) endorsement 
+                        -- if the count of endorsements, including this one and the creator's, is equal or greater than the required sigs, it will be approved if funds are available
+                        isApprovedPendingFunds = 2 + length (btx_endorsementTxs $ stx_base sendRequest) >= a_requiredSigs a
                     in
-                    case eUpdatedSendRequest of
-                        Left ex -> Left ex
-                        Right updatedSendRequest -> 
-                            Right (Account {
-                                    a_sendTxs = newSendTxs
-                                    , a_signers= a_signers a
-                                    , a_requiredSigs = a_requiredSigs a
-                                    , a_balance= newBalance
-                                    , a_accountId= a_accountId a
-                                    } 
-                                    , fst updatedSendRequest)
-                                where
-                                    newSendTxs = (\oldSendRequest -> 
-                                            if btx_createdDateTime (stx_base oldSendRequest) == btx_createdDateTime (stx_base sendRequest) 
-                                                then fst updatedSendRequest
-                                                else oldSendRequest
-                                            ) <$> a_sendTxs a
-                                    -- compute the new SendRequest state
-                                    -- if approved
-                                    -- TODO EE! issue with newBalance!  Check for NSF
-                                    newBalance = 99999
+                    if isApprovedPendingFunds
+                        then
+                            -- check if adequate funds are available, and update newBalance and state
+                            if a_balance a >= stx_sendAmount sendRequest
+                                then
+                                    let newBalance = a_balance a - stx_sendAmount sendRequest in
+                                    applyEndorsement2 a sendRequest endorsement newBalance TxApproved
+                                else
+                                    applyEndorsement2 a sendRequest endorsement (a_balance a) TxApprovedNsf
+                        else
+                            applyEndorsement2 a sendRequest endorsement (a_balance a) TxPendingEndorsement
 
--- For the supplied SendRequest and account balance, apply the endorsement, compute and return the new request state and account balance
-applyEndorsementToSendTx :: SendRequestTx -> Int -> EndorsementTx -> Either RequestException (SendRequestTx, Int)
-applyEndorsementToSendTx sendRequest oldAccountBalance endorsement = 
-    case btx_txState (stx_base sendRequest) of
-        TxPendingEndorsement -> if isNowApproved 
-            then if stx_sendAmount sendRequest >= oldAccountBalance
-                    then Right (updatedSendRequest, oldAccountBalance - stx_sendAmount sendRequest ) -- TODO EE!! verify
-                    else Left NsfEx
-            else Right (updatedSendRequest, oldAccountBalance)
-            where 
-                isNowApproved = True -- TODO EE! fix
-                updatedSendRequest = SendRequestTx {
-                    stx_sendAmount= stx_sendAmount sendRequest
-                    , stx_recipient= stx_recipient sendRequest
-                    , stx_base=AccountRequestTxBase {
-                        btx_txState= btx_txState base -- TODO EE! update
-                        , btx_txId= btx_txId base
-                        , btx_txCreator= btx_txCreator base
-                        , btx_endorsementTxs= btx_endorsementTxs base <> [endorsement]
-                        , btx_createdDateTime= btx_createdDateTime base
-                        , btx_accountId= btx_accountId base
+applyEndorsement2 :: Account -> SendRequestTx -> EndorsementTx -> Int -> TxState -> Either RequestException (Account, SendRequestTx)
+applyEndorsement2 a newSendRequestTx endorsement newBalance newState = 
+    let
+        -- create the list of newSendTxs via an fmap across the account's send transactions and update it with the one matching
+        newSendTxs = 
+            (\oldSendRequest -> 
+                if btx_createdDateTime (stx_base oldSendRequest) == btx_createdDateTime (stx_base newSendRequestTx) 
+                then 
+                    let base = stx_base oldSendRequest 
+                    in
+                        SendRequestTx {
+                            stx_sendAmount = stx_sendAmount oldSendRequest, 
+                            stx_recipient = stx_recipient oldSendRequest, 
+                            stx_base = AccountRequestTxBase {
+                                btx_txState = newState -- This is being updated
+                                , btx_txId = btx_txId base
+                                , btx_txCreator = btx_txCreator base
+                                , btx_endorsementTxs = btx_endorsementTxs base <> [endorsement] -- This is being appended
+                                , btx_createdDateTime = btx_createdDateTime base
+                                , btx_accountId = btx_accountId base
+                            }
                         }
-                    } 
-                    where base = stx_base sendRequest
-        _ -> Left AlreadyFinalizedEx        
+                else 
+                    oldSendRequest
+            ) <$> a_sendTxs a
+        -- get the updatedSendRequest out of the above newSentTxs
+        mUpdatedSendRequest = findSendRequest newSendTxs newSendRequestTx
+    in
+        case mUpdatedSendRequest of
+            Nothing -> Left OtherEx
+            Just srtx -> Right (
+                Account {
+                    a_signers = a_signers a
+                    , a_sendTxs = newSendTxs -- updated
+                    , a_requiredSigs = a_requiredSigs a
+                    , a_balance = newBalance -- updated
+                    , a_accountId = a_accountId a
+                    }
+                , srtx)
+    
+isFinalTxState :: TxState -> Bool
+isFinalTxState s = s == TxPendingEndorsement
+
+-- maybe find the matching sendRequest in list based createdDateTime of a provided sendRequest
+findSendRequest :: [SendRequestTx] -> SendRequestTx -> Maybe SendRequestTx
+findSendRequest [] _ = Nothing
+findSendRequest (sr:srs) psr = if btx_createdDateTime (stx_base psr) == btx_createdDateTime (stx_base sr)
+    then Just sr
+    else findSendRequest srs psr

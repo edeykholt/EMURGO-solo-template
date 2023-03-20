@@ -317,17 +317,16 @@ startAccount = do
                                     liftIO $ warnUser putStrLn "Index out of range"
                                     startAccount
                                 else do
-                                    let availableRequests = a_sendTxs activeAccount
-                                    let selectedRequest = availableRequests !! idx
                                     utcNow <- liftIO getCurrentTime 
-                                    let endorsement = EndorsementTx {
-                                        atxv_txId="ignored"
-                                        , atxv_dateTime = show utcNow  -- TODO strengthen type
-                                        , atxv_approverVk= authenticatedUser
-                                        , atxv_accountId= a_accountId activeAccount
-                                    }
-                                    let updatedAccountAndSR = applyEndorsement activeAccount selectedRequest endorsement
-                                    
+                                    let availableRequests = a_sendTxs activeAccount
+                                        selectedRequest = availableRequests !! idx
+                                        endorsement = EndorsementTx {
+                                            atxv_txId="ignored"
+                                            , atxv_dateTime = show utcNow  -- TODO strengthen type
+                                            , atxv_approverVk= authenticatedUser
+                                            , atxv_accountId= a_accountId activeAccount
+                                        }
+                                        updatedAccountAndSR = applyEndorsement activeAccount selectedRequest endorsement
                                     case updatedAccountAndSR of
                                         Left ex -> do
                                             -- TODO print the ex

@@ -22,9 +22,9 @@ _TEST_CAROL_SK_ = "CCC"
 _TEST_DAN_SK_ = "DDD"
 _TEST_Sks_ = [_TEST_ALICE_SK_ , _TEST_BOB_SK_ , _TEST_CAROL_SK_ , _TEST_DAN_SK_ ]
 
--- Account Request Transactions, below, go through a number of potential states resolved as Expired or Approved
-data TxState = TxPendingEndorsement | TxApproved | TxApprovedNsf | TxOtherError
-    deriving Show
+-- Account Request Transactions, below, go through a number of potential states until finalized
+data TxState = TxPendingEndorsement | TxApproved | TxApprovedNsf
+    deriving (Show, Eq)
 
 -- Exceptions that may be returned on attempted Wallet updates
 data WalletException = WalletUpdateException | WalletException2
