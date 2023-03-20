@@ -9,23 +9,23 @@ import Data.Either (fromRight)
 import Control.Monad (forM_)
 
 -- Add a SendRequest to an account, given a requestor, recipient, amount, account, and requestedDateTime.
-addSpendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
-addSpendRequestTx requestor recipient amt (Account id signers bal threshhold spendRequests) utcTime 
+addSendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
+addSendRequestTx requestor recipient amt (Account id signers bal threshhold sendRequests) utcTime 
     | amt < 0 
         = Left OtherEx
     | notElem requestor _TEST_Vks_ || notElem recipient _TEST_Vks_
         = Left OtherEx
     | otherwise
-        = Right $ Account id signers bal threshhold $ spendRequests ++ [SpendRequestTx {
+        = Right $ Account id signers bal threshhold $ sendRequests ++ [SendRequestTx {
                         stx_base=AccountRequestTxBase {
-                            btx_txState=TxRequested
+                            btx_txState=TxPendingEndorsement
                             , btx_txId="" -- TODO unused - remove
                             , btx_txCreator=requestor
                             , btx_endorseTxs=[]
                             , btx_createdDateTime=utcTime
                             , btx_accountId=id}
                         , stx_recipient=recipient
-                        , stx_spendAmount=amt
+                        , stx_sendAmount=amt
                         }]
 
 -- functions to help UI listings.  Txs awaiting your endorsement
@@ -65,24 +65,24 @@ prettyAccount a =
         , " Signers: " ++ intercalate ", " (a_signers a)
         , " Required Endorsers: " ++ show (a_requiredSigs a)
         , " Balance: " ++ show (a_balance a)
-        , " Spend Requests: \n" ++ prettyRequests (a_spendTxs a)
+        , " Send Requests: \n" ++ prettyRequests (a_sendTxs a)
     ]
 
-prettyRequests :: [SpendRequestTx] -> String
-prettyRequests [] = "(no Spend Requests)"
+prettyRequests :: [SendRequestTx] -> String
+prettyRequests [] = "(no Send Requests)"
 prettyRequests requests =
     intercalate "\n" $ map prettyRequestWithNum $ zip [0, 1..] requests
 
-prettyRequestWithNum :: (Int, SpendRequestTx) -> String
+prettyRequestWithNum :: (Int, SendRequestTx) -> String
 prettyRequestWithNum (i, request) = unlines [
         "  #" ++ [intToDigit i]
         , prettyRequest request
         ]
 
-prettyRequest :: SpendRequestTx -> String
+prettyRequest :: SendRequestTx -> String
 prettyRequest request = unlines [
             "    Recipient: " ++ show (stx_recipient request)
-            , "    Amount: " ++ show (stx_spendAmount request)
+            , "    Amount: " ++ show (stx_sendAmount request)
             , "    Requester: " ++ show (btx_txCreator base)
             , "    Requested at: " ++ show (btx_createdDateTime base)
             , "    Workflow State: " ++ show (btx_txState base)
@@ -98,12 +98,12 @@ prettyEndorser :: AccountTxVoteTx -> String
 prettyEndorser endorser = show (atxv_approverVk endorser)
 
 -- Find the index of a SendRequestTx in a list, based on its dateTime. This is a admittedly weak identifier that should be improved in the future.
-findSendRequestIndex :: [SpendRequestTx] -> SpendRequestTx -> Maybe Int
+findSendRequestIndex :: [SendRequestTx] -> SendRequestTx -> Maybe Int
 findSendRequestIndex [] _  = Nothing
 findSendRequestIndex sendRequests newSendRequest =
     fsr sendRequests newSendRequest (length sendRequests - 1)
     where
-        -- fsr :: [SpendRequestTx] -> SpendRequestTx -> Int -> Maybe Int
+        -- fsr :: [SendRequestTx] -> SendRequestTx -> Int -> Maybe Int
         fsr [] _ _          = Nothing
         fsr (sr:srs) a idx  = if btx_createdDateTime (stx_base sr) == btx_createdDateTime (stx_base newSendRequest)
             then
@@ -111,29 +111,27 @@ findSendRequestIndex sendRequests newSendRequest =
             else
                 fsr srs a (idx - 1)
 
--- For the supplied account, sendRequest, and spendEndorsement, update the account and spendRequest, and return them
-applyEndorsement :: Account -> SpendRequestTx -> AccountTxVoteTx -> Either RequestException (Account, SpendRequestTx)
+-- For the supplied account, sendRequest, and Endorsement, update the account and sendRequest, and return them
+applyEndorsement :: Account -> SendRequestTx -> AccountTxVoteTx -> Either RequestException (Account, SendRequestTx)
 applyEndorsement a sendRequest endorsement = 
-    let mFoundIndex = findSendRequestIndex (a_spendTxs a) sendRequest in
+    let mFoundIndex = findSendRequestIndex (a_sendTxs a) sendRequest in
     case mFoundIndex of
         Nothing -> Left EndorsementTargetNotFoundEx
         Just index -> 
-            -- verify old spendRequest is still in a pending state that can accpet endorsements
-            case btx_txState $ stx_base $ a_spendTxs a !! index of
+            -- verify old sendRequest is still in a pending state that can accpet endorsements
+            case btx_txState $ stx_base $ a_sendTxs a !! index of
                 TxApproved    -> Left AlreadyFinalizedEx
-                TxRejected    -> Left UnauthorizedSignerEx
-                TxExpired     -> Left TimedOutEx
                 TxApprovedNsf -> Left NsfEx
                 TxOtherError  -> Left RedundantVoteEx
                 _             -> 
                     let
-                        eUpdatedSendRequest = applyEndorsementToSpendTx sendRequest (a_balance a) endorsement 
+                        eUpdatedSendRequest = applyEndorsementToSendTx sendRequest (a_balance a) endorsement 
                     in
                     case eUpdatedSendRequest of
                         Left ex -> Left ex
                         Right updatedSendRequest -> 
                             Right (Account {
-                                    a_spendTxs = newSpendTxs
+                                    a_sendTxs = newSendTxs
                                     , a_signers= a_signers a
                                     , a_requiredSigs = a_requiredSigs a
                                     , a_balance= newBalance
@@ -141,31 +139,29 @@ applyEndorsement a sendRequest endorsement =
                                     } 
                                     , fst updatedSendRequest)
                                 where
-                                    newSpendTxs = (\oldSendRequest -> 
+                                    newSendTxs = (\oldSendRequest -> 
                                             if btx_createdDateTime (stx_base oldSendRequest) == btx_createdDateTime (stx_base sendRequest) 
                                                 then fst updatedSendRequest
                                                 else oldSendRequest
-                                            ) <$> a_spendTxs a
-                                    -- compute the new SpendRequest state
+                                            ) <$> a_sendTxs a
+                                    -- compute the new SendRequest state
                                     -- if approved
                                     -- TODO EE! issue with newBalance!  Check for NSF
                                     newBalance = 99999
 
--- For the supplied SpendRequest and account balance, apply the endorsement, compute and return the new request state and account balance
-applyEndorsementToSpendTx :: SpendRequestTx -> Int -> AccountTxVoteTx -> Either RequestException (SpendRequestTx, Int)
-applyEndorsementToSpendTx sendRequest oldAccountBalance endorsement = 
+-- For the supplied SendRequest and account balance, apply the endorsement, compute and return the new request state and account balance
+applyEndorsementToSendTx :: SendRequestTx -> Int -> AccountTxVoteTx -> Either RequestException (SendRequestTx, Int)
+applyEndorsementToSendTx sendRequest oldAccountBalance endorsement = 
     case btx_txState (stx_base sendRequest) of
-        TxRequested -> Left AlreadyFinalizedEx
-        TxPending   -> Left AlreadyFinalizedEx
-        _           -> if isApproved 
-            then if stx_spendAmount sendRequest >= oldAccountBalance
-                    then Right (updatedSpendRequest, oldAccountBalance - stx_spendAmount sendRequest ) -- TODO EE!! verify
+        TxPendingEndorsement -> if isNowApproved 
+            then if stx_sendAmount sendRequest >= oldAccountBalance
+                    then Right (updatedSendRequest, oldAccountBalance - stx_sendAmount sendRequest ) -- TODO EE!! verify
                     else Left NsfEx
-            else Right (updatedSpendRequest, oldAccountBalance)
+            else Right (updatedSendRequest, oldAccountBalance)
             where 
-                isApproved = True -- TODO EE! fix
-                updatedSpendRequest = SpendRequestTx {
-                    stx_spendAmount= stx_spendAmount sendRequest
+                isNowApproved = True -- TODO EE! fix
+                updatedSendRequest = SendRequestTx {
+                    stx_sendAmount= stx_sendAmount sendRequest
                     , stx_recipient= stx_recipient sendRequest
                     , stx_base=AccountRequestTxBase {
                         btx_txState= btx_txState base -- TODO EE! update
@@ -177,4 +173,4 @@ applyEndorsementToSpendTx sendRequest oldAccountBalance endorsement =
                         }
                     } 
                     where base = stx_base sendRequest
-                
+        _ -> Left AlreadyFinalizedEx        

@@ -23,13 +23,10 @@ _TEST_DAN_SK_ = "DDD"
 _TEST_Sks_ = [_TEST_ALICE_SK_ , _TEST_BOB_SK_ , _TEST_CAROL_SK_ , _TEST_DAN_SK_ ]
 
 -- Account Request Transactions, below, go through a number of potential states resolved as Expired or Approved
-data TxState = TxRequested | TxPending | TxApproved | TxRejected | TxExpired | TxApprovedNsf | TxOtherError
+data TxState = TxPendingEndorsement | TxApproved | TxApprovedNsf | TxOtherError
     deriving Show
 
 data WalletException = WalletUpdateException | WalletException2
-    deriving Show
-
-data AccountException = AccountException1 | AccountException2
     deriving Show
 
 -- Couldn't find an easier function such as (String -> UTCTime)
@@ -42,7 +39,6 @@ _TEST_UTCTime_ = mkUTCTime (2023, 01, 01) (01, 0, 0)
 
 -- Varoius kinds of Account Request Transactions share the same base set of property types
 data AccountRequestTxBase = AccountRequestTxBase {
-    -- btx_expirationInSeconds     :: Natural
     btx_accountId             :: String  -- redundant?  Friendly Name?
     , btx_txId                :: String
     , btx_txCreator           :: Vk
@@ -50,24 +46,24 @@ data AccountRequestTxBase = AccountRequestTxBase {
     , btx_txState             :: TxState
     , btx_endorseTxs          :: [] AccountTxVoteTx
 } deriving Show
-_TEST_ARTxBase_ = AccountRequestTxBase "Test Account" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxRequested []
+_TEST_ARTxBase_ = AccountRequestTxBase "Test Account" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxPendingEndorsement []
 
 -- Request to send value
-data SpendRequestTx = SpendRequestTx {
-    stx_base             :: AccountRequestTxBase
-    , stx_recipient      :: Vk
-    , stx_spendAmount    :: Int
+data SendRequestTx = SendRequestTx {
+    stx_base            :: AccountRequestTxBase
+    , stx_recipient     :: Vk
+    , stx_sendAmount    :: Int
 } deriving Show
-_TEST_SpendRequestTx_ = SpendRequestTx _TEST_ARTxBase_ _TEST_BOB_VK_ 10
+_TEST_SendRequestTx_ = SendRequestTx _TEST_ARTxBase_ _TEST_BOB_VK_ 10
 
 data Account = Account {
-    a_accountId :: String
-    , a_signers :: [] Vk
+    a_accountId      :: String
+    , a_signers      :: [] Vk
     , a_requiredSigs :: Int
-    , a_balance :: Int
-    , a_spendTxs :: [] SpendRequestTx
+    , a_balance      :: Int
+    , a_sendTxs      :: [] SendRequestTx
 } deriving Show
-_TEST_ACCOUNT_ = Account "Test Account" [_TEST_ALICE_VK_, _TEST_BOB_VK_, _TEST_CAROL_VK_ ] 2 100 [_TEST_SpendRequestTx_]
+_TEST_ACCOUNT_ = Account "Test Account" [_TEST_ALICE_VK_, _TEST_BOB_VK_, _TEST_CAROL_VK_ ] 2 100 [_TEST_SendRequestTx_]
 
 data Wallet = Wallet {
    ah_accounts              :: [] Account
@@ -76,7 +72,7 @@ data Wallet = Wallet {
    } deriving Show
 _TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] Nothing Nothing -- initial account is active, no user authenticated
 
--- Used to endorse a SpendRequest
+-- Used to endorse a SendRequest
 data AccountTxVoteTx = AccountTxVoteTx {
     atxv_accountId     :: String
     ,atxv_txId         :: String

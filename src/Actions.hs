@@ -80,7 +80,7 @@ startWallet = do
             liftIO $ emphasisUser putStrLn $ fromJust maybeAuthenticatedVk
             liftIO $ listAccounts accounts
             liftIO $ putStrLn "Commands..."
-            liftIO $ putStrLn "1. List accounts with detail\n2. Enter Account Mode \n3. Add Account\n4. Authenticate \n9. Exit App"
+            liftIO $ putStrLn "1. List Accounts with Detail\n2. Enter Account Mode \n3. Add Account\n4. Authenticate \n9. Exit App"
             liftIO $ promptUser putStr "Enter choice: "
             selectedCmd <- liftIO getUpperChar
             case selectedCmd of
@@ -266,15 +266,15 @@ startAccount = do
                             startAccount
                         '2' -> do
                             -- Print All Send Requests
-                            liftIO $ putStrLn $ prettyRequests (a_spendTxs activeAccount)
+                            liftIO $ putStrLn $ prettyRequests (a_sendTxs activeAccount)
                             startAccount
                         '3' -> do
                             -- Print Pending Send Requests
                             liftIO $ warnUser print "Not yet implemented"
                             startAccount
                         '4' -> do
-                            -- Create Spend Request
-                            liftIO $ promptUser putStrLn "Input Spend Request parameters:"
+                            -- Create Send Request
+                            liftIO $ promptUser putStrLn "Input Send Request parameters:"
                             liftIO $ promptUser putStr "  Recipient's public key: "
                             recipientVk <- liftIO getLine
                             if recipientVk `notElem` _TEST_Vks_
@@ -287,7 +287,7 @@ startAccount = do
                                     let amtInt = decimalStringToInt amtString
                                     utcNow <- liftIO getCurrentTime 
                                     let requestorVk = fromJust $ ah_authenticatedVk w
-                                    let eUpdatedAccount = addSpendRequestTx requestorVk recipientVk amtInt activeAccount utcNow
+                                    let eUpdatedAccount = addSendRequestTx requestorVk recipientVk amtInt activeAccount utcNow
                                     liftIO $ putStrLn "before: "
                                     liftIO $ print activeAccount
                                     case eUpdatedAccount of
@@ -312,12 +312,12 @@ startAccount = do
                             idxString <- liftIO getLine
                             let idx = decimalStringToInt idxString
                             
-                            if idx < 0 || idx + 1 > length (a_spendTxs activeAccount)
+                            if idx < 0 || idx + 1 > length (a_sendTxs activeAccount)
                                 then do
                                     liftIO $ warnUser putStrLn "Index out of range"
                                     startAccount
                                 else do
-                                    let availableRequests = a_spendTxs activeAccount
+                                    let availableRequests = a_sendTxs activeAccount
                                     let selectedRequest = availableRequests !! idx
                                     utcNow <- liftIO getCurrentTime 
                                     let endorsement = AccountTxVoteTx {
