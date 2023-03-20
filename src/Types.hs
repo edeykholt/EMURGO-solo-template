@@ -26,6 +26,7 @@ _TEST_Sks_ = [_TEST_ALICE_SK_ , _TEST_BOB_SK_ , _TEST_CAROL_SK_ , _TEST_DAN_SK_ 
 data TxState = TxPendingEndorsement | TxApproved | TxApprovedNsf | TxOtherError
     deriving Show
 
+-- Exceptions that may be returned on attempted Wallet updates
 data WalletException = WalletUpdateException | WalletException2
     deriving Show
 
@@ -39,12 +40,12 @@ _TEST_UTCTime_ = mkUTCTime (2023, 01, 01) (01, 0, 0)
 
 -- Varoius kinds of Account Request Transactions share the same base set of property types
 data AccountRequestTxBase = AccountRequestTxBase {
-    btx_accountId             :: String  -- redundant?  Friendly Name?
+    btx_accountId             :: String  -- TODO redundant?  Friendly Name?
     , btx_txId                :: String
     , btx_txCreator           :: Vk
     , btx_createdDateTime     :: UTCTime
     , btx_txState             :: TxState
-    , btx_endorseTxs          :: [] AccountTxVoteTx
+    , btx_endorsementTxs      :: [] EndorsementTx
 } deriving Show
 _TEST_ARTxBase_ = AccountRequestTxBase "Test Account" "txId" _TEST_ALICE_VK_ _TEST_UTCTime_ TxPendingEndorsement []
 
@@ -73,13 +74,13 @@ data Wallet = Wallet {
 _TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] Nothing Nothing -- initial account is active, no user authenticated
 
 -- Used to endorse a SendRequest
-data AccountTxVoteTx = AccountTxVoteTx {
+data EndorsementTx = EndorsementTx {
     atxv_accountId     :: String
     ,atxv_txId         :: String
     ,atxv_approverVk   :: Vk
     ,atxv_dateTime     :: String  -- TODO tighten
 } deriving Show
-_TEST_AccountTxVoteTx_ = AccountTxVoteTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02"
+_TEST_AccountTxVoteTx_ = EndorsementTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02"
 
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx | EndorsementTargetNotFoundEx | OtherEx
     deriving Show

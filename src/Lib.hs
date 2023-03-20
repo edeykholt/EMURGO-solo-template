@@ -21,7 +21,7 @@ addSendRequestTx requestor recipient amt (Account id signers bal threshhold send
                             btx_txState=TxPendingEndorsement
                             , btx_txId="" -- TODO unused - remove
                             , btx_txCreator=requestor
-                            , btx_endorseTxs=[]
+                            , btx_endorsementTxs=[]
                             , btx_createdDateTime=utcTime
                             , btx_accountId=id}
                         , stx_recipient=recipient
@@ -86,15 +86,15 @@ prettyRequest request = unlines [
             , "    Requester: " ++ show (btx_txCreator base)
             , "    Requested at: " ++ show (btx_createdDateTime base)
             , "    Workflow State: " ++ show (btx_txState base)
-            , "    Additional Endorsers: " ++ prettyEndorsers (btx_endorseTxs base)
+            , "    Additional Endorsers: " ++ prettyEndorsers (btx_endorsementTxs base)
             ]
             where base = stx_base request
 
-prettyEndorsers :: [AccountTxVoteTx] -> String
+prettyEndorsers :: [EndorsementTx] -> String
 prettyEndorsers [] = "(none)"
 prettyEndorsers endorsers = intercalate ", " $ map prettyEndorser endorsers
 
-prettyEndorser :: AccountTxVoteTx -> String
+prettyEndorser :: EndorsementTx -> String
 prettyEndorser endorser = show (atxv_approverVk endorser)
 
 -- Find the index of a SendRequestTx in a list, based on its dateTime. This is a admittedly weak identifier that should be improved in the future.
@@ -112,7 +112,7 @@ findSendRequestIndex sendRequests newSendRequest =
                 fsr srs a (idx - 1)
 
 -- For the supplied account, sendRequest, and Endorsement, update the account and sendRequest, and return them
-applyEndorsement :: Account -> SendRequestTx -> AccountTxVoteTx -> Either RequestException (Account, SendRequestTx)
+applyEndorsement :: Account -> SendRequestTx -> EndorsementTx -> Either RequestException (Account, SendRequestTx)
 applyEndorsement a sendRequest endorsement = 
     let mFoundIndex = findSendRequestIndex (a_sendTxs a) sendRequest in
     case mFoundIndex of
@@ -150,7 +150,7 @@ applyEndorsement a sendRequest endorsement =
                                     newBalance = 99999
 
 -- For the supplied SendRequest and account balance, apply the endorsement, compute and return the new request state and account balance
-applyEndorsementToSendTx :: SendRequestTx -> Int -> AccountTxVoteTx -> Either RequestException (SendRequestTx, Int)
+applyEndorsementToSendTx :: SendRequestTx -> Int -> EndorsementTx -> Either RequestException (SendRequestTx, Int)
 applyEndorsementToSendTx sendRequest oldAccountBalance endorsement = 
     case btx_txState (stx_base sendRequest) of
         TxPendingEndorsement -> if isNowApproved 
@@ -167,7 +167,7 @@ applyEndorsementToSendTx sendRequest oldAccountBalance endorsement =
                         btx_txState= btx_txState base -- TODO EE! update
                         , btx_txId= btx_txId base
                         , btx_txCreator= btx_txCreator base
-                        , btx_endorseTxs= btx_endorseTxs base <> [endorsement]
+                        , btx_endorsementTxs= btx_endorsementTxs base <> [endorsement]
                         , btx_createdDateTime= btx_createdDateTime base
                         , btx_accountId= btx_accountId base
                         }

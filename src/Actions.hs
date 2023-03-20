@@ -320,7 +320,7 @@ startAccount = do
                                     let availableRequests = a_sendTxs activeAccount
                                     let selectedRequest = availableRequests !! idx
                                     utcNow <- liftIO getCurrentTime 
-                                    let endorsement = AccountTxVoteTx {
+                                    let endorsement = EndorsementTx {
                                         atxv_txId="ignored"
                                         , atxv_dateTime = show utcNow  -- TODO strengthen type
                                         , atxv_approverVk= authenticatedUser
