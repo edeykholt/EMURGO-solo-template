@@ -50,58 +50,58 @@ replaceAccount w ra =
         Right newWallet
 
 prettyWallet :: Wallet -> String
--- TODO make even prettier ;-)
-prettyWallet = show
+prettyWallet w = prettyAccountsWithNum $ ah_accounts w
 
 prettyAccountsWithNum :: [Account] -> String
 prettyAccountsWithNum accounts =
             let numberedAccounts = zip [0,1..] accounts in
-            unlines $ fmap (\(i, a) -> show i ++ prettyAccount a ) numberedAccounts
+            -- unlines $ fmap (\(i, a) -> " #" ++ show i ++ "\n" ++ prettyAccount a ) numberedAccounts
+            unlines $ fmap (\(i, a) -> " #" ++ show i ++ " " ++ a_accountId a ) numberedAccounts
 
 prettyAccount :: Account -> String
 prettyAccount a =
     unlines [
-        "Account Id: " ++ a_accountId a
-        , "Signers: " ++ intercalate ", " (a_signers a)
-        , "Required Endorsers: " ++ show (a_requiredSigs a)
-        , "Balance: " ++ show (a_balance a)
-        , "Spend Requests... \n" ++ prettyRequests (a_spendTxs a)
+        " Account Id: " ++ a_accountId a
+        , " Signers: " ++ intercalate ", " (a_signers a)
+        , " Required Endorsers: " ++ show (a_requiredSigs a)
+        , " Balance: " ++ show (a_balance a)
+        , " Spend Requests: \n" ++ prettyRequests (a_spendTxs a)
     ]
 
 prettyRequests :: [SpendRequestTx] -> String
 prettyRequests [] = "(no Spend Requests)"
 prettyRequests requests =
-    intercalate "\n" $ map prettyRequestWithNum $ zip [1..] requests
+    intercalate "\n" $ map prettyRequestWithNum $ zip [0, 1..] requests
 
 prettyRequestWithNum :: (Int, SpendRequestTx) -> String
 prettyRequestWithNum (i, request) = unlines [
-        "Request # " ++ [intToDigit i]
+        "  #" ++ [intToDigit i]
         , prettyRequest request
         ]
 
 prettyRequest :: SpendRequestTx -> String
 prettyRequest request = unlines [
-            "Recipient: " ++ show (stx_recipient request)
-            , "Amount: " ++ show (stx_spendAmount request)
-            , "Requester: " ++ btx_txCreator base
-            , "Requested at: " ++ show (btx_createdDateTime base)
-            , "Workflow State: " ++ show (btx_txState base)
-            , "Additional Endorsers: " ++ prettyEndorsers (btx_endorseTxs base)
+            "    Recipient: " ++ show (stx_recipient request)
+            , "    Amount: " ++ show (stx_spendAmount request)
+            , "    Requester: " ++ show (btx_txCreator base)
+            , "    Requested at: " ++ show (btx_createdDateTime base)
+            , "    Workflow State: " ++ show (btx_txState base)
+            , "    Additional Endorsers: " ++ prettyEndorsers (btx_endorseTxs base)
             ]
             where base = stx_base request
 
 prettyEndorsers :: [AccountTxVoteTx] -> String
 prettyEndorsers [] = "(none)"
-prettyEndorsers es = intercalate ", " $ map prettyEndorser es
+prettyEndorsers endorsers = intercalate ", " $ map prettyEndorser endorsers
 
 prettyEndorser :: AccountTxVoteTx -> String
-prettyEndorser pe = show (atxv_approverVk pe)
+prettyEndorser endorser = show (atxv_approverVk endorser)
 
 -- Find the index of a SendRequestTx in a list, based on its dateTime. This is a admittedly weak identifier that should be improved in the future.
 findSendRequestIndex :: [SpendRequestTx] -> SpendRequestTx -> Maybe Int
 findSendRequestIndex [] _  = Nothing
 findSendRequestIndex sendRequests newSendRequest =
-    fsr sendRequests newSendRequest (length sendRequests)
+    fsr sendRequests newSendRequest (length sendRequests - 1)
     where
         -- fsr :: [SpendRequestTx] -> SpendRequestTx -> Int -> Maybe Int
         fsr [] _ _          = Nothing
@@ -128,10 +128,6 @@ applyEndorsement a sendRequest endorsement =
                 _             -> 
                     let
                         eUpdatedSendRequest = applyEndorsementToSpendTx sendRequest (a_balance a) endorsement 
-                                        -- compute the new SpendRequest state
-                                        -- if approved
-                                        -- TODO EE! issue with newBalance!  Check for NSF
-                        newBalance = 0
                     in
                     case eUpdatedSendRequest of
                         Left ex -> Left ex
@@ -150,10 +146,35 @@ applyEndorsement a sendRequest endorsement =
                                                 then fst updatedSendRequest
                                                 else oldSendRequest
                                             ) <$> a_spendTxs a
+                                    -- compute the new SpendRequest state
+                                    -- if approved
+                                    -- TODO EE! issue with newBalance!  Check for NSF
+                                    newBalance = 99999
 
--- For the supplied SpendRequest and account balance, apply the endorsement, compute new request state and account balance
+-- For the supplied SpendRequest and account balance, apply the endorsement, compute and return the new request state and account balance
 applyEndorsementToSpendTx :: SpendRequestTx -> Int -> AccountTxVoteTx -> Either RequestException (SpendRequestTx, Int)
-applyEndorsementToSpendTx spendRequest oldAccountBalance endorsement = 
-    -- TODO EE! implement real stuff
-    -- Either RequestException (SpendRequestTx, Int)
-    Right (spendRequest, oldAccountBalance)
+applyEndorsementToSpendTx sendRequest oldAccountBalance endorsement = 
+    case btx_txState (stx_base sendRequest) of
+        TxRequested -> Left AlreadyFinalizedEx
+        TxPending   -> Left AlreadyFinalizedEx
+        _           -> if isApproved 
+            then if stx_spendAmount sendRequest >= oldAccountBalance
+                    then Right (updatedSpendRequest, oldAccountBalance - stx_spendAmount sendRequest ) -- TODO EE!! verify
+                    else Left NsfEx
+            else Right (updatedSpendRequest, oldAccountBalance)
+            where 
+                isApproved = True -- TODO EE! fix
+                updatedSpendRequest = SpendRequestTx {
+                    stx_spendAmount= stx_spendAmount sendRequest
+                    , stx_recipient= stx_recipient sendRequest
+                    , stx_base=AccountRequestTxBase {
+                        btx_txState= btx_txState base -- TODO EE! update
+                        , btx_txId= btx_txId base
+                        , btx_txCreator= btx_txCreator base
+                        , btx_endorseTxs= btx_endorseTxs base <> [endorsement]
+                        , btx_createdDateTime= btx_createdDateTime base
+                        , btx_accountId= btx_accountId base
+                        }
+                    } 
+                    where base = stx_base sendRequest
+                

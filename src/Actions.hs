@@ -69,7 +69,6 @@ startWallet :: (MonadIO m, MonadState Wallet m) => m ()
 startWallet = do
     Wallet accounts maybeActiveAccountIndex maybeAuthenticatedVk <- get
     liftIO $ emphasisUser putStr "WALLET MODE   Authenticated User: " 
-    -- let maybeAuthenticatedVk = ah_authenticatedVk w
     if isNothing maybeAuthenticatedVk
         then do
             liftIO $ emphasisUser putStrLn "none"
@@ -79,8 +78,6 @@ startWallet = do
             startWallet
         else do
             liftIO $ emphasisUser putStrLn $ fromJust maybeAuthenticatedVk
-            -- continue below
-
             liftIO $ listAccounts accounts
             liftIO $ putStrLn "Commands..."
             liftIO $ putStrLn "1. List accounts with detail\n2. Enter Account Mode \n3. Add Account\n4. Authenticate \n9. Exit App"
@@ -314,36 +311,42 @@ startAccount = do
                             liftIO $ promptUser putStr "Request#: "
                             idxString <- liftIO getLine
                             let idx = decimalStringToInt idxString
-                            -- TODO verify input is in range
-                            let selectedRequests = a_spendTxs activeAccount
-                            let selectedRequest = selectedRequests !! idx
-                            utcNow <- liftIO getCurrentTime 
-                            let endorsement = AccountTxVoteTx {
-                                atxv_txId="ignored"
-                                , atxv_dateTime = show utcNow  -- TODO strengthen type
-                                , atxv_approverVk= authenticatedUser
-                                , atxv_accountId= a_accountId activeAccount
-                            }
-                            let  updatedAccountAndSR = applyEndorsement activeAccount selectedRequest endorsement
-                            case updatedAccountAndSR of
-                                Left ex -> do
-                                    -- TODO print the ex
-                                    liftIO $ warnUser putStrLn "Could not apply endorsement"
+                            
+                            if idx < 0 || idx + 1 > length (a_spendTxs activeAccount)
+                                then do
+                                    liftIO $ warnUser putStrLn "Index out of range"
                                     startAccount
-                                Right (updatedAcct, updatedSendRequest) -> do
-                                    let eNewWallet = replaceAccount w updatedAcct
-                                    case eNewWallet of
+                                else do
+                                    let availableRequests = a_spendTxs activeAccount
+                                    let selectedRequest = availableRequests !! idx
+                                    utcNow <- liftIO getCurrentTime 
+                                    let endorsement = AccountTxVoteTx {
+                                        atxv_txId="ignored"
+                                        , atxv_dateTime = show utcNow  -- TODO strengthen type
+                                        , atxv_approverVk= authenticatedUser
+                                        , atxv_accountId= a_accountId activeAccount
+                                    }
+                                    let updatedAccountAndSR = applyEndorsement activeAccount selectedRequest endorsement
+                                    
+                                    case updatedAccountAndSR of
                                         Left ex -> do
-                                            liftIO $ print ex
-                                            liftIO $ warnUser putStrLn "Could not replace account in wallet"
+                                            -- TODO print the ex
+                                            liftIO $ warnUser putStrLn "Could not apply endorsement"
                                             startAccount
-                                        Right newWallet -> do
-                                            put newWallet
-                                            liftIO $ putStrLn "Endorsed. Updated Send Transaction: "
-                                            liftIO $ putStrLn $ prettyRequest updatedSendRequest
-                                            liftIO $ putStrLn $ "Account balance: " ++ show (a_balance updatedAcct)
-                                            startAccount
-                        '9' ->
+                                        Right (updatedAcct, updatedSendRequest) -> do
+                                            let eNewWallet = replaceAccount w updatedAcct
+                                            case eNewWallet of
+                                                Left ex -> do
+                                                    liftIO $ print ex
+                                                    liftIO $ warnUser putStrLn "Could not replace account in wallet"
+                                                    startAccount
+                                                Right newWallet -> do
+                                                    put newWallet
+                                                    liftIO $ putStrLn "Endorsed. Updated Send Transaction: "
+                                                    liftIO $ putStrLn $ prettyRequest updatedSendRequest
+                                                    liftIO $ putStrLn $ "Account balance: " ++ show (a_balance updatedAcct)
+                                                    startAccount
+                        '9' -> do
                             -- Exit account. Return to wallet
                             pure ()
                         _ -> do
