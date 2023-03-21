@@ -6,4 +6,7 @@ import Types
 
 main :: IO ()
 main = do
-  putStrLn "Hello Haskell!"
+  putStrLn "******************************"
+  putStrLn "        MultiSig Wallet"
+  putStrLn "******************************"
+  runApp
