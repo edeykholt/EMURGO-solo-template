@@ -27,7 +27,7 @@ data TxState = TxPendingEndorsement | TxApproved | TxApprovedNsf
     deriving (Show, Eq)
 
 -- Exceptions that may be returned on attempted Wallet updates
-data WalletException = WalletUpdateException | WalletException2
+data WalletException = WalletUpdateException | AccountSignersNotUnique
     deriving Show
 
 -- Couldn't find an easier function such as (String -> UTCTime).  TODO: Consider in the future:   read :: String -> UTCTime

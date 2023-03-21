@@ -153,18 +153,23 @@ startWallet = do
                                             let existingSigners = [fromJust maybeAuthenticatedVk]
                                             allSigners <- liftIO $ addSigner existingSigners (numPotentialSigners - 1)
 
-                                            -- Now that we have we've collected parameters, create the proposed new Account
-                                            let newAccount = Account accountName allSigners thresholdNum 100 []
+                                            -- TODO this uniqueness check and constructor use below could move into Lib
+                                            let areSignersUnique = areVksUnique allSigners
+                                            if not areSignersUnique
+                                                then do
+                                                    liftIO $ warnUser putStrLn "Signers are not unique. Account not added."
+                                                else do
+                                                    -- Now that we have we've collected parameters, create the proposed new Account
+                                                    let newAccount = Account accountName allSigners thresholdNum 100 []
 
-                                            -- In the current design, no approval is needed to create the account. There's a known risk to usage is if it is created with bad Vks.
-                                            
-                                            -- Update the wallet with the new Account
-                                            let newAccounts = accounts ++ [newAccount]
-                                            let newIndex = length newAccounts - 1
-                                            let newWallet = Wallet newAccounts (Just newIndex) maybeAuthenticatedVk
-                                            put newWallet
-                                            liftIO $ putStrLn "Added new account to wallet"
-
+                                                    -- In the current design, no approval is needed to create the account. There's a known risk to usage is if it is created with bad Vks.
+                                                    
+                                                    -- Update the wallet with the new Account
+                                                    let newAccounts = accounts ++ [newAccount]
+                                                    let newIndex = length newAccounts - 1
+                                                    let newWallet = Wallet newAccounts (Just newIndex) maybeAuthenticatedVk
+                                                    put newWallet
+                                                    liftIO $ putStrLn "Added new account to wallet"
                                             startWallet
                 
                 '4' -> do
@@ -204,7 +209,8 @@ addSigner vks 0 = pure vks
 addSigner vks numAddlSigners = do
     promptUser putStr "Public Key of additional signer: "
     vk <- getLine
-    -- For now, we are validating users by seeing if they are in the test list. For future, we'd verify the syntax of provided public key, address, etc.
+    -- For now, we are validating users by seeing if they are in the test list. For future implementation,
+    -- we'd verify the syntax of provided public key, address, etc.
     if vk `notElem` _TEST_Vks_
         then do
             warnUser putStrLn "Public key is not in known list. Try again."

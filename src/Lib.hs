@@ -1,13 +1,14 @@
 module Lib where
 
 import Types
-import Data.List (intercalate, elemIndex, transpose)
+import Data.List (intercalate, elemIndex, transpose, nub)
 import Data.Char (toUpper, intToDigit)
 import Data.Time (UTCTime)
 import Text.XML.HXT.Core (a_name, intToHexString)
 import Data.Either (fromRight)
 import Control.Monad (forM_)
 import Data.Data (typeOf)
+import Data.Bool (bool)
 
 -- Add a SendRequest to an account, given a requestor, recipient, amount, account, and requestedDateTime.
 addSendRequestTx :: Vk -> Vk -> Int -> Account -> UTCTime -> Either RequestException Account
@@ -45,7 +46,18 @@ replaceAccount w ra =
     in
     -- TODO implement verification replacement worked. For now, assuming it did
     let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w) in
-        Right newWallet
+        if areVksUnique $ a_signers ra
+            then 
+                Right newWallet
+            else
+                Left AccountSignersNotUnique
+
+-- check for uniqueness of signers
+areVksUnique :: [Vk] -> Bool
+areVksUnique xs = length (nub xs) == length xs
+-- bad implementation:
+    -- areVksUnique vks = foldl (\acc vk -> acc && notElem vk (tail vks)) True vks
+
 
 -- generate a nicely formatted string of the wallet
 prettyWallet :: Wallet -> String

@@ -8,6 +8,7 @@
 - Here, a Wallet is a list of Accounts. Each Account is named, has an amount balance, and a list of transactions.
 - Each account starts out with 100 units of value in its balance.
 - Users are authenticated with a key-pair.  Users are known by their public keys. key-pairs are simple strings in this project, without any cryptography.
+    - The predefined users have a public key such as "Alice" with private key "AAA" and similar for Bob BBB, Carol CCC, and Dan DDD.
 - A SendRequest transaction is a request to transver value to another public key (Vk)
 - SendRequests must be endorsed by the specified other users in order for a SendRequest transaction to be finalized and send value
 

@@ -31,7 +31,6 @@ executable emurgo-project
         , containers >= 0.6.5.1
         , ansi-terminal >= 0.11.4
         , hxt >= 9.2.0
-        -- , foundation
 
     hs-source-dirs:   app, src
     default-language: Haskell2010
