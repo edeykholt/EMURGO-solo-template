@@ -39,18 +39,21 @@ runApp = do
             evalStateT startWallet $ Wallet [] Nothing Nothing
     pure ()
 
+-- display a colored string indicating a prompt
 promptUser :: (String -> IO () ) -> String -> IO ()
 promptUser f s = do
     setSGR [SetColor Foreground Vivid Blue]
     f s
     setSGR [Reset]
 
+-- display a colored string indicating a warning
 warnUser :: (String -> IO () ) -> String -> IO ()
 warnUser f s = do
     setSGR [SetColor Foreground Vivid Red]
     f s
     setSGR [Reset]
 
+-- display a colored string indicating something important
 emphasisUser :: (String -> IO () ) -> String -> IO ()
 emphasisUser f s = do
     setSGR [SetConsoleIntensity BoldIntensity]
@@ -65,6 +68,7 @@ getUpperChar = do
         [] -> pure 'z'
         c:_ -> pure (toUpper c)
 
+-- startWallet loop
 startWallet :: (MonadIO m, MonadState Wallet m) => m ()
 startWallet = do
     Wallet accounts maybeActiveAccountIndex maybeAuthenticatedVk <- get
@@ -178,7 +182,7 @@ startWallet = do
                     liftIO $ warnUser putStrLn "Unexpected choice"
                     startWallet
 
--- authenticatePk is a currently weak way to validate a user is authentic. Intent is to replace this with cryptographic signing and validation later.
+-- authenticate the user.  Implementation is a currently weak way to validate a user is authentic. Intent is to replace this with cryptographic signing and validation later.
 authenticatePk :: Wallet -> IO Wallet
 authenticatePk w = do
     promptUser putStr "To authenticate, enter your public key: "
@@ -194,6 +198,7 @@ authenticatePk w = do
             warnUser putStrLn "Invalid match, unable to authenticate"
             pure w
 
+-- prompt user for "public keys" of additional signers, verifying that they are in list of known public keys
 addSigner :: [Vk] -> Int -> IO [Vk]
 addSigner vks 0 = pure vks
 addSigner vks numAddlSigners = do
@@ -211,6 +216,7 @@ addSigner vks numAddlSigners = do
             else
                 pure newVks
 
+-- display a list of accounts
 listAccounts :: [Account] -> IO ()
 listAccounts accounts = do
     putStrLn "Accounts:"
@@ -220,10 +226,12 @@ listAccounts accounts = do
         else do
             putStrLn $ prettyAccountsWithNum accounts
 
+-- display an account
 printAccount :: Account -> IO ()
 printAccount a = do
     putStrLn $ prettyAccount a
 
+-- list of wallet menu options
 menuOptions :: [(Int, String)]
 menuOptions = [(1, "Print Account")
                 , (2, "Print All Send Requests")
@@ -232,6 +240,7 @@ menuOptions = [(1, "Print Account")
                 , (9, "Return to Wallet")
                 ]
 
+-- display the wallet menu options
 listMenuOptions :: [(Int, String)] -> IO ()
 listMenuOptions [] = pure ()
 listMenuOptions (a : as) = do
@@ -240,6 +249,7 @@ listMenuOptions (a : as) = do
     putStrLn $ snd a
     listMenuOptions as
 
+-- startAccount loop, prompting user for actions to take, and taking those actions
 startAccount :: (MonadIO m, MonadState Wallet m) => m ()
 startAccount = do
     w <- get

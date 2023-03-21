@@ -47,14 +47,17 @@ replaceAccount w ra =
     let newWallet = Wallet newAccounts (ah_activeAccountIndex w) (ah_authenticatedVk w) in
         Right newWallet
 
+-- generate a nicely formatted string of the wallet
 prettyWallet :: Wallet -> String
 prettyWallet w = prettyAccountsWithNum $ ah_accounts w
 
+-- generate a nicely formatted string ...
 prettyAccountsWithNum :: [Account] -> String
 prettyAccountsWithNum accounts =
             let numberedAccounts = zip [0,1..] accounts in
             unlines $ fmap (\(i, a) -> " #" ++ show i ++ " " ++ a_accountId a ) numberedAccounts
 
+-- generate a nicely formatted string ...
 prettyAccount :: Account -> String
 prettyAccount a =
     unlines [
@@ -65,17 +68,20 @@ prettyAccount a =
         , " Send Requests: \n" ++ prettyRequests (a_sendTxs a)
     ]
 
+-- generate a nicely formatted string ...
 prettyRequests :: [SendRequestTx] -> String
 prettyRequests [] = "   (no Send Requests)"
 prettyRequests requests =
     intercalate " " $ map prettyRequestWithNum $ zip [0, 1..] requests
 
+-- generate a nicely formatted string ...
 prettyRequestWithNum :: (Int, SendRequestTx) -> String
 prettyRequestWithNum (i, request) = unlines [
         "  #" ++ [intToDigit i]
         , prettyRequest request
         ]
 
+-- generate a nicely formatted string ...
 prettyRequest :: SendRequestTx -> String
 prettyRequest request = unlines [
             "    Recipient: " ++ show (stx_recipient request)
@@ -87,10 +93,12 @@ prettyRequest request = unlines [
             ]
             where base = stx_base request
 
+-- generate a nicely formatted string ...
 prettyEndorsers :: [EndorsementTx] -> String
 prettyEndorsers [] = "(none)"
 prettyEndorsers endorsers = intercalate ", " $ map prettyEndorser endorsers
 
+-- generate a nicely formatted string ...
 prettyEndorser :: EndorsementTx -> String
 prettyEndorser endorser = show (atxv_approverVk endorser)
 
