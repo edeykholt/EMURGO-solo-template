@@ -18,20 +18,16 @@ addSendRequestTx requestor recipient amt (Account id signers bal threshhold send
         = Left OtherEx
     | otherwise
         = Right $ Account id signers bal threshhold $ sendRequests ++ [SendRequestTx {
-                        stx_base=AccountRequestTxBase {
-                            btx_txState=TxPendingEndorsement
-                            , btx_txId="" -- TODO unused - remove
-                            , btx_txCreator=requestor
-                            , btx_endorsementTxs=[]
-                            , btx_createdDateTime=utcTime
-                            , btx_accountId=id}
-                        , stx_recipient=recipient
-                        , stx_sendAmount=amt
+                        stx_base            = AccountRequestTxBase {
+                            btx_txState             = TxPendingEndorsement
+                            , btx_txId              = "" -- TODO unused - remove
+                            , btx_txCreator         = requestor
+                            , btx_endorsementTxs    = []
+                            , btx_createdDateTime   = utcTime
+                            , btx_accountId         = id}
+                        , stx_recipient     = recipient
+                        , stx_sendAmount    = amt
                         }]
-
--- functions to help UI listings.  Txs awaiting your endorsement
-getPendingTxsForVk :: ()
-getPendingTxsForVk = undefined
 
 -- Check if the Vk and Sk pair is authentic.  A genuine implementation would instead use cryptographic signing and verification
 isAuthenticatedPair :: Vk -> Sk -> Bool
@@ -39,6 +35,7 @@ isAuthenticatedPair :: Vk -> Sk -> Bool
 -- TODO confirm these are a matching pair, not just both in the test lists. Will require some refactoring
 isAuthenticatedPair vk sk = elem vk _TEST_Vks_ && elem sk _TEST_Sks_ 
 
+-- update the matching account in the wallet
 replaceAccount :: Wallet -> Account -> Either WalletException Wallet
 replaceAccount w ra =
     let 
@@ -56,7 +53,6 @@ prettyWallet w = prettyAccountsWithNum $ ah_accounts w
 prettyAccountsWithNum :: [Account] -> String
 prettyAccountsWithNum accounts =
             let numberedAccounts = zip [0,1..] accounts in
-            -- unlines $ fmap (\(i, a) -> " #" ++ show i ++ "\n" ++ prettyAccount a ) numberedAccounts
             unlines $ fmap (\(i, a) -> " #" ++ show i ++ " " ++ a_accountId a ) numberedAccounts
 
 prettyAccount :: Account -> String
@@ -70,9 +66,9 @@ prettyAccount a =
     ]
 
 prettyRequests :: [SendRequestTx] -> String
-prettyRequests [] = "(no Send Requests)"
+prettyRequests [] = "   (no Send Requests)"
 prettyRequests requests =
-    intercalate "\n" $ map prettyRequestWithNum $ zip [0, 1..] requests
+    intercalate " " $ map prettyRequestWithNum $ zip [0, 1..] requests
 
 prettyRequestWithNum :: (Int, SendRequestTx) -> String
 prettyRequestWithNum (i, request) = unlines [
@@ -120,12 +116,14 @@ applyEndorsement a sendRequest endorsement =
         Nothing -> Left EndorsementTargetNotFoundEx
         Just index -> 
             let oldSendRequest = a_sendTxs a !! index in
-            -- verify old sendRequest is still in a pending state that can accpet endorsements
+            -- verify old sendRequest is still in a pending state that can accept endorsements
             case btx_txState $ stx_base oldSendRequest of
                 TxApproved              -> Left AlreadyFinalizedEx
                 TxApprovedNsf           -> Left NsfEx
                 TxPendingEndorsement    -> 
                     let
+                        -- TODO verify the endorsement points to the sendRequest, which points to the Account
+                        -- isReferenceIntegrity ...
                         -- if the count of endorsements, including this one plus the creator's, is equal or greater than the required sigs, it will be approved if funds are available
                         isApprovedPendingFunds = 2 + length (btx_endorsementTxs $ stx_base sendRequest) >= a_requiredSigs a
                         -- check if the endorser is either the same as the sendRequest's creator or is a prior endorser on this sendRequest
@@ -152,11 +150,11 @@ applyEndorsement a sendRequest endorsement =
 applyEndorsement2 :: Account -> SendRequestTx -> EndorsementTx -> Int -> TxState -> Either RequestException (Account, SendRequestTx)
 applyEndorsement2 a newSendRequestTx endorsement newBalance newState = 
     let
-        -- create the list of newSendTxs via an fmap across the account's send transactions and update it with the one matching
-        newSendTxs = 
-            (\oldSendRequest -> 
+        -- create the list of newSendTxs via an fmap across the account's send transactions and update it with one matching based on creation timestamp
+        newSendTxs = (\oldSendRequest -> 
                 if btx_createdDateTime (stx_base oldSendRequest) == btx_createdDateTime (stx_base newSendRequestTx) 
                 then 
+                    -- TODO confirm integrity of inputs, that the supplied endorsement references supplied sendRequest
                     let base = stx_base oldSendRequest 
                     in
                         SendRequestTx {
@@ -178,8 +176,8 @@ applyEndorsement2 a newSendRequestTx endorsement newBalance newState =
         mUpdatedSendRequest = findSendRequest newSendTxs newSendRequestTx
     in
         case mUpdatedSendRequest of
-            Nothing -> Left OtherEx
-            Just srtx -> Right (
+            Nothing                 -> Left OtherEx
+            Just updatedSendRequest -> Right ( 
                 Account {
                     a_signers = a_signers a
                     , a_sendTxs = newSendTxs -- updated
@@ -187,10 +185,11 @@ applyEndorsement2 a newSendRequestTx endorsement newBalance newState =
                     , a_balance = newBalance -- updated
                     , a_accountId = a_accountId a
                     }
-                , srtx)
-    
+                , updatedSendRequest)
+
+-- check if the transaction state is one of the final states
 isFinalTxState :: TxState -> Bool
-isFinalTxState s = s == TxPendingEndorsement
+isFinalTxState s = s /= TxPendingEndorsement
 
 -- maybe find the matching sendRequest in list based createdDateTime of a provided sendRequest
 findSendRequest :: [SendRequestTx] -> SendRequestTx -> Maybe SendRequestTx
@@ -198,3 +197,13 @@ findSendRequest [] _ = Nothing
 findSendRequest (sr:srs) psr = if btx_createdDateTime (stx_base psr) == btx_createdDateTime (stx_base sr)
     then Just sr
     else findSendRequest srs psr
+
+-- UI-friendly show messages for RequestException
+instance Show RequestException where 
+    show re = case re of 
+        NsfEx -> "Not Sufficient Funds."
+        UnauthorizedSignerEx -> "Unauthorized Signer."
+        RedundantVoteEx -> "You already endorsed this Spend Request."
+        AlreadyFinalizedEx -> "The spend request is already finalized."
+        _ -> "Other exception."
+    

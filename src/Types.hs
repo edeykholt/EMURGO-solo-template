@@ -30,7 +30,7 @@ data TxState = TxPendingEndorsement | TxApproved | TxApprovedNsf
 data WalletException = WalletUpdateException | WalletException2
     deriving Show
 
--- Couldn't find an easier function such as (String -> UTCTime)
+-- Couldn't find an easier function such as (String -> UTCTime).  TODO: Consider in the future:   read :: String -> UTCTime
 mkUTCTime :: (Integer, Int, Int)
           -> (Int, Int, Pico)
           -> UTCTime
@@ -73,15 +73,20 @@ data Wallet = Wallet {
    } deriving Show
 _TEST_WALLET_ = Wallet [_TEST_ACCOUNT_] Nothing Nothing -- initial account is active, no user authenticated
 
--- Used to endorse a SendRequest
+-- Used to endorse a SendRequest and potentially others in the future
 data EndorsementTx = EndorsementTx {
-    atxv_accountId     :: String
-    ,atxv_txId         :: String
-    ,atxv_approverVk   :: Vk
-    ,atxv_dateTime     :: String  -- TODO tighten
+    atxv_accountId           :: String
+    ,atxv_sendTxDateTime     :: UTCTime
+    ,atxv_approverVk         :: Vk
+    ,atxv_dateTime           :: UTCTime
 } deriving Show
-_TEST_AccountTxVoteTx_ = EndorsementTx "qwery" "asdf" _TEST_BOB_VK_ "2023-01-02"
+_TEST_AccountTxVoteTx_ = EndorsementTx {
+    atxv_accountId = a_accountId _TEST_ACCOUNT_
+    , atxv_sendTxDateTime = _TEST_UTCTime_
+    , atxv_approverVk = _TEST_BOB_VK_
+    , atxv_dateTime = read "2023-01-02 00:00:00 +0000"
+    }
 
 -- Exceptions for SendRequestTx or EndorsementTx
 data RequestException = NsfEx | UnauthorizedSignerEx | TimedOutEx | RedundantVoteEx | AlreadyFinalizedEx | EndorsementTargetNotFoundEx | OtherEx
-    deriving Show
+    -- deriving Show

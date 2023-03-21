@@ -110,7 +110,7 @@ startWallet = do
                                     put newWallet
                                     newerWallet <- execStateT startAccount newWallet
                                     put newerWallet
-                                    liftIO $ putStrLn $ prettyWallet newerWallet
+                                    liftIO $ putStr $ prettyWallet newerWallet
                                     startWallet
                 '3' -> do
                     -- Add a new account
@@ -227,9 +227,8 @@ printAccount a = do
 menuOptions :: [(Int, String)]
 menuOptions = [(1, "Print Account")
                 , (2, "Print All Send Requests")
-                , (3, "Print Pending Send Requests")
-                , (4, "Create Send Request")
-                , (5, "Endorse Pending Send Request")
+                , (3, "Create Send Request")
+                , (4, "Endorse Pending Send Request")
                 , (9, "Return to Wallet")
                 ]
 
@@ -269,10 +268,6 @@ startAccount = do
                             liftIO $ putStrLn $ prettyRequests (a_sendTxs activeAccount)
                             startAccount
                         '3' -> do
-                            -- Print Pending Send Requests
-                            liftIO $ warnUser print "Not yet implemented"
-                            startAccount
-                        '4' -> do
                             -- Create Send Request
                             liftIO $ promptUser putStrLn "Input Send Request parameters:"
                             liftIO $ promptUser putStr "  Recipient's public key: "
@@ -306,7 +301,7 @@ startAccount = do
                                                 Left _ -> do
                                                     liftIO $ warnUser putStrLn "Could not replace account in wallet"
                                                     startAccount
-                        '5' -> do
+                        '4' -> do
                             -- Endorse Pending Send Request
                             liftIO $ promptUser putStr "Request#: "
                             idxString <- liftIO getLine
@@ -320,24 +315,23 @@ startAccount = do
                                     utcNow <- liftIO getCurrentTime 
                                     let availableRequests = a_sendTxs activeAccount
                                         selectedRequest = availableRequests !! idx
+                                        -- Create the endorsement that references the selected sendRequest and the activeAccount
                                         endorsement = EndorsementTx {
-                                            atxv_txId="ignored"
-                                            , atxv_dateTime = show utcNow  -- TODO strengthen type
+                                            atxv_sendTxDateTime = btx_createdDateTime $ stx_base selectedRequest
+                                            , atxv_dateTime = utcNow
                                             , atxv_approverVk= authenticatedUser
                                             , atxv_accountId= a_accountId activeAccount
                                         }
                                         updatedAccountAndSR = applyEndorsement activeAccount selectedRequest endorsement
                                     case updatedAccountAndSR of
                                         Left ex -> do
-                                            -- TODO print the ex
-                                            liftIO $ warnUser putStrLn "Could not apply endorsement"
+                                            liftIO $ warnUser putStrLn $ show ex <> " Could not record endorsement"
                                             startAccount
                                         Right (updatedAcct, updatedSendRequest) -> do
                                             let eNewWallet = replaceAccount w updatedAcct
                                             case eNewWallet of
                                                 Left ex -> do
-                                                    liftIO $ print ex
-                                                    liftIO $ warnUser putStrLn "Could not replace account in wallet"
+                                                    liftIO $ warnUser putStr $ show ex <> " Could not update account in wallet"
                                                     startAccount
                                                 Right newWallet -> do
                                                     put newWallet
@@ -346,9 +340,10 @@ startAccount = do
                                                     liftIO $ putStrLn $ "Account balance: " ++ show (a_balance updatedAcct)
                                                     startAccount
                         '9' -> do
-                            -- Exit account. Return to wallet
+                            -- Exit account mode. Return to wallet mode
                             pure ()
                         _ -> do
                             liftIO $ warnUser print "Unexpected entry!"
                             startAccount
-                    pure () -- return to caller, e.g. wallet mode
+                     -- Exit account mode. Return to wallet mode
+                    pure ()
