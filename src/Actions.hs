@@ -69,6 +69,7 @@ getUpperChar = do
         c:_ -> pure (toUpper c)
 
 -- startWallet loop
+-- TODO consider adding an Either monad here, with ExceptT
 startWallet :: (MonadIO m, MonadState Wallet m) => m ()
 startWallet = do
     Wallet accounts maybeActiveAccountIndex maybeAuthenticatedVk <- get
@@ -134,6 +135,7 @@ startWallet = do
                             x <- liftIO getUpperChar
                             let thresholdNum = digitToInt x
                             let isInvalidThreshold = thresholdNum < 2 || thresholdNum > 9
+                            -- TODO could add a MonadError into the mtl, and handle the exception states
                             if isInvalidThreshold
                                 then do
                                     liftIO $ warnUser putStrLn "Invalid number of required endorsers"

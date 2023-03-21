@@ -1,3 +1,4 @@
+-- consider   {-# LANGUAGE RecordWildCards #-}
 module Lib where
 
 import Types
@@ -171,6 +172,9 @@ applyEndorsement2 a newSendRequestTx endorsement newBalance newState =
                     -- TODO confirm integrity of inputs, that the supplied endorsement references supplied sendRequest
                     let base = stx_base oldSendRequest 
                     in
+                        -- TODO consider something like:  
+                        -- base { btx_txState = newState, btx_endorsementTxs = ... }
+                        -- TODO consider record wildcard extensions. Or Setter syntax. Or dot syntax. Or LENS library
                         SendRequestTx {
                             stx_sendAmount = stx_sendAmount oldSendRequest, 
                             stx_recipient = stx_recipient oldSendRequest, 
