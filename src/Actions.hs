@@ -130,16 +130,16 @@ startWallet = do
                             liftIO $ promptUser putStr "Account Name: "
                             accountName <- liftIO getLine
                             
-                            liftIO $ promptUser putStr "Number of required signers: "
+                            liftIO $ promptUser putStr "Number of required endorsers: "
                             x <- liftIO getUpperChar
                             let thresholdNum = digitToInt x
                             let isInvalidThreshold = thresholdNum < 2 || thresholdNum > 9
                             if isInvalidThreshold
                                 then do
-                                    liftIO $ warnUser putStrLn "Invalid number of required signers"
+                                    liftIO $ warnUser putStrLn "Invalid number of required endorsers"
                                     startWallet
                                 else do
-                                    liftIO $ promptUser putStr "Number of potential signers (including you): "
+                                    liftIO $ promptUser putStr "Number of potential endorsers (including you): "
                                     y <- liftIO getUpperChar
                                     let numPotentialSigners = digitToInt y
                                     let isInvalidPotential = numPotentialSigners < thresholdNum || numPotentialSigners > 9
@@ -148,8 +148,8 @@ startWallet = do
                                             liftIO $ warnUser putStrLn "Invalid number of potential signers"
                                             startWallet
                                         else do
-                                            -- get VKeys of additional signers, in addition to the authenticated one
-                                            liftIO $ promptUser putStrLn "  Enter VKeys of other signers: "
+                                            -- get VKeys of additional endorsers, in addition to the authenticated one
+                                            liftIO $ promptUser putStrLn "  Enter VKeys of other endorsers: "
                                             let existingSigners = [fromJust maybeAuthenticatedVk]
                                             allSigners <- liftIO $ addSigner existingSigners (numPotentialSigners - 1)
 
@@ -157,7 +157,7 @@ startWallet = do
                                             let areSignersUnique = areVksUnique allSigners
                                             if not areSignersUnique
                                                 then do
-                                                    liftIO $ warnUser putStrLn "Signers are not unique. Account not added."
+                                                    liftIO $ warnUser putStrLn "Endorsers are not unique. Account not added."
                                                 else do
                                                     -- Now that we have we've collected parameters, create the proposed new Account
                                                     let newAccount = Account accountName allSigners thresholdNum 100 []
@@ -203,11 +203,11 @@ authenticatePk w = do
             warnUser putStrLn "Invalid match, unable to authenticate"
             pure w
 
--- prompt user for "public keys" of additional signers, verifying that they are in list of known public keys
+-- prompt user for "public keys" of additional endorsers, verifying that they are in list of known public keys
 addSigner :: [Vk] -> Int -> IO [Vk]
 addSigner vks 0 = pure vks
 addSigner vks numAddlSigners = do
-    promptUser putStr "Public Key of additional signer: "
+    promptUser putStr "Public Key of additional endorser: "
     vk <- getLine
     -- For now, we are validating users by seeing if they are in the test list. For future implementation,
     -- we'd verify the syntax of provided public key, address, etc.
@@ -299,15 +299,15 @@ startAccount = do
                                     utcNow <- liftIO getCurrentTime 
                                     let requestorVk = fromJust $ ah_authenticatedVk w
                                     let eUpdatedAccount = addSendRequestTx requestorVk recipientVk amtInt activeAccount utcNow
-                                    liftIO $ putStrLn "before: "
-                                    liftIO $ print activeAccount
+                                    -- liftIO $ putStrLn "before: "
+                                    -- liftIO $ print activeAccount
                                     case eUpdatedAccount of
                                         Left ex -> do
                                             liftIO $ print ex
                                             startAccount
                                         Right a -> do
-                                            liftIO $ putStrLn "after: "
-                                            liftIO $ print a
+                                            -- liftIO $ putStrLn "after: "
+                                            -- liftIO $ print a
                                             liftIO $ putStrLn $ prettyAccount a
                                             let newWallet = replaceAccount w a
                                             case newWallet of
