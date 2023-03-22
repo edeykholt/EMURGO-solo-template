@@ -241,8 +241,8 @@ printAccount a = do
 
 -- list of wallet menu options
 menuOptions :: [(Int, String)]
-menuOptions = [(1, "Print Account")
-                , (2, "Print All Send Requests")
+menuOptions = [(1, "Show Account")
+                , (2, "Show All Send Requests")
                 , (3, "Create Send Request")
                 , (4, "Endorse Pending Send Request")
                 , (9, "Return to Wallet")
@@ -278,11 +278,11 @@ startAccount = do
                     char <- liftIO getUpperChar
                     case char of
                         '1' -> do
-                            -- Print Account
+                            -- Show Account
                             liftIO $ putStrLn $ prettyAccount activeAccount
                             startAccount
                         '2' -> do
-                            -- Print All Send Requests
+                            -- Show All Send Requests
                             liftIO $ putStrLn $ prettyRequests (a_sendTxs activeAccount)
                             startAccount
                         '3' -> do
