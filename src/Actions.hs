@@ -337,9 +337,10 @@ startAccount = do
                                         endorsement = EndorsementTx {
                                             atxv_sendTxDateTime = btx_createdDateTime $ stx_base selectedRequest
                                             , atxv_dateTime = utcNow
-                                            , atxv_approverVk= authenticatedUser
+                                            , atxv_approverVk = authenticatedUser
                                             , atxv_accountId= a_accountId activeAccount
                                         }
+                                        -- TODO EE! check inputs here
                                         updatedAccountAndSR = applyEndorsement activeAccount selectedRequest endorsement
                                     case updatedAccountAndSR of
                                         Left ex -> do

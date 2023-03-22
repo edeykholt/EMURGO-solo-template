@@ -117,22 +117,19 @@ prettyEndorser endorser = show (atxv_approverVk endorser)
 
 -- Find the index of a SendRequestTx in a list, based on its dateTime. This is an admitedly weak identifier that should be improved in the future.
 -- TODO fix bug if SendRequesdTx is not found then it should return Maybe
-findSendRequestIndex :: [SendRequestTx] -> SendRequestTx -> Int
-findSendRequestIndex sendRequests newSendRequest = 
-    foldl 
-        (\acc sr -> if btx_createdDateTime (stx_base sr) == btx_createdDateTime (stx_base newSendRequest) 
-            then acc 
-            else acc + 1 
-        ) 0 sendRequests
+-- findSendRequestIndex :: [SendRequestTx] -> SendRequestTx -> Int
+-- findSendRequestIndex sendRequests newSendRequest = 
+--    foldl 
+--        (\acc sr -> if btx_createdDateTime (stx_base sr) == btx_createdDateTime (stx_base newSendRequest) 
+--            then acc 
+--            else acc + 1 
+--        ) 0 sendRequests
 
 -- For the supplied account, sendRequest, and endorsement, update the account and sendRequest, and return them
 applyEndorsement :: Account -> SendRequestTx -> EndorsementTx -> Either RequestException (Account, SendRequestTx)
 applyEndorsement a sendRequest endorsement = 
-    let index = findSendRequestIndex (a_sendTxs a) sendRequest
-        oldSendRequest = a_sendTxs a !! index 
-    in
     -- verify old sendRequest is still in a pending state that can accept endorsements
-    case btx_txState $ stx_base oldSendRequest of
+    case btx_txState $ stx_base sendRequest of
         TxApproved              -> Left AlreadyFinalizedEx
         TxApprovedNsf           -> Left NsfEx
         TxPendingEndorsement    -> 
@@ -141,6 +138,7 @@ applyEndorsement a sendRequest endorsement =
                 -- isReferenceIntegrity ...
                 -- if the count of endorsements, including this one plus the creator's, is equal or greater than the required sigs, it will be approved if funds are available
                 isApprovedPendingFunds = 2 + length (btx_endorsementTxs $ stx_base sendRequest) >= a_requiredSigs a
+-- TODO EE!
                 -- check if the endorser is either the same as the sendRequest's creator or is a prior endorser on this sendRequest
                 isRepeatEndorser = atxv_approverVk endorsement == btx_txCreator (stx_base sendRequest) ||
                     foldl (\acc e -> acc || atxv_approverVk e == atxv_approverVk endorsement ) False (btx_endorsementTxs $ stx_base sendRequest)
